@@ -36,23 +36,28 @@ const protocol_t NSH_NEXT_NSH   = 8w0x04;  // 嵌套 NSH
 
 
 // Example: 服务功能链动作 (Pseudocode)
+/*
 action add_service_chain() {
     nsh_t.setValid();
     nsh_t.service_path = 32w0x00ABCD01; // 路径 ID + 起始索引
     nsh_t.context_1 = 32w0x0A010101;  // 入口交换机 IP
     nsh_t.next_protocol = NSH_NEXT_IPV4;
 }
+*/
 
 // Example: 元数据处理示例 (Pseudocode)
+/*
 action process_metadata() {
     if (nsh_t.md_type == 8w0x2) {  // 扩展元数据
         nsh_t.metadata = {qos_tag, tenant_id, flow_hash};
     }
 }
+*/
 
 
 // 关键特性说明：
 //     1. 动态路径控制：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 table service_forwarding {
     key = {
         nsh.service_path: exact;
@@ -64,10 +69,13 @@ table service_forwarding {
     }
     size = 1024;
 }
+*/
 //     2. 服务链编排：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action decrement_si() {
     nsh_t.service_path = nsh_t.service_path & 32w0xFFFFFF00 | (nsh_t.service_path & 32w0xFF) - 32w1;  // 索引减 1
 }
+*/
 //     3. 多平台支持：( ↓↓↓ Example, Pseudocode ↓↓↓ )
 const bit<32> PLATFORM_OPENSTACK  = 0x0A000001;
 const bit<32> PLATFORM_KUBERNETES = 0x0A000002;
@@ -75,16 +83,20 @@ const bit<32> PLATFORM_KUBERNETES = 0x0A000002;
 
 // 典型工作流程：
 //     1. 分类器注入：
+/*
 action classify_traffic() {
     nsh_t.context_3 = ipv4.srcAddr & 32w0xFFFF0000;  // 基于源 IP 分类
 }
-//     2. ​服务跳转：
+*/
+//     2. 服务跳转：
 //         - 每经过一个服务节点，路径索引自动递减
 //         - 根据当前索引值选择下一跳服务
-//     3. ​策略执行：
+//     3. 策略执行：
+/*
 action log_violation() {
     nsh_t.context_4 = 32w0x0000FF01;  // 标记安全违规
 }
+*/
 //     4. 终结处理：
 //         - 当路径索引为 0 时剥离 NSH 头部
 //         - 恢复原始报文转发

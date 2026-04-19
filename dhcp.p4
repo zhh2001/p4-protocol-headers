@@ -1,4 +1,4 @@
-/​**​
+/**
  * DHCP Header Definition in P4
  * Dynamic Host Configuration Protocol for IP address assignment
  * 
@@ -7,7 +7,7 @@
  */
 
 /* DHCP Message Types */
-enum dhcp_message_type {
+enum bit<8> dhcp_message_type {
     DHCPDISCOVER = 1,  // Client broadcast to locate servers
     DHCPOFFER    = 2,  // Server response to DISCOVER with offer
     DHCPREQUEST  = 3,  // Client request for offered parameters
@@ -19,7 +19,7 @@ enum dhcp_message_type {
 };
 
 /* DHCP Option Codes (partial list) */
-enum dhcp_option_code {
+enum bit<8> dhcp_option_code {
     OPT_SUBNET_MASK       = 1,   // Subnet mask value
     OPT_ROUTER            = 3,   // Router IP address(es)
     OPT_DNS_SERVER        = 6,   // DNS server IP address(es)
@@ -35,7 +35,7 @@ enum dhcp_option_code {
     OPT_END               = 255  // End of options marker
 };
 
-/​**​
+/**
  * DHCP Fixed-Length Header (236 bytes)
  * Fixed portion of DHCP packet (excluding options)
  */
@@ -51,64 +51,64 @@ header dhcp_header {
     bit<32>  yiaddr;         // 'your' (client) IP address (from server)
     bit<32>  siaddr;         // IP address of next server to use in bootstrap
     bit<32>  giaddr;         // Relay agent IP address, used in booting via relay
-    bit<8>   chaddr[16];     // Client hardware address (MAC for Ethernet)
-    bit<8>   sname[64];      // Optional server host name, null terminated string
-    bit<8>   file[128];       // Boot file name, null terminated string
+    bit<128> chaddr;     // Client hardware address (MAC for Ethernet)
+    bit<512> sname;      // Optional server host name, null terminated string
+    bit<1024> file;       // Boot file name, null terminated string
     bit<32>  magic_cookie;   // Magic cookie (0x63825363) for DHCP options
 };
 
-/​**​
+/**
  * DHCP Option Header
  * Variable-length options field format
  */
 header dhcp_option {
     bit<8>   code;          // Option code (from dhcp_option_code enum)
     bit<8>   len;           // Length of data (0-255 bytes)
-    bit<8>   data[255];     // Option data (variable length)
+    bit<2040> data;     // Option data (variable length)
 };
 
-/​**​
+/**
  * DHCP Message Type Option (Option 53)
  * Special format for DHCP message type option
  */
 header dhcp_msg_type_option {
-    bit<8>   code = 53;     // DHCP message type option code
-    bit<8>   len = 1;       // Always 1 byte for this option
+    // bit<8>   code = 53;  // (pseudocode: field initializer removed)     // DHCP message type option code
+    // bit<8>   len = 1;  // (pseudocode: field initializer removed)       // Always 1 byte for this option
     bit<8>   type;          // DHCP message type (from dhcp_message_type enum)
 };
 
-/​**​
+/**
  * IP Address Lease Time Option (Option 51)
  * Specifies lease time in seconds
  */
 header dhcp_lease_time_option {
-    bit<8>   code = 51;     // IP lease time option code
-    bit<8>   len = 4;       // Always 4 bytes for this option
+    // bit<8>   code = 51;  // (pseudocode: field initializer removed)     // IP lease time option code
+    // bit<8>   len = 4;  // (pseudocode: field initializer removed)       // Always 4 bytes for this option
     bit<32>  lease_time;    // Lease time in seconds
 };
 
-/​**​
+/**
  * DHCP Client Identifier Option (Option 61)
  * Used to uniquely identify the client
  */
 header dhcp_client_id_option {
-    bit<8>   code = 61;     // Client identifier option code
+    // bit<8>   code = 61;  // (pseudocode: field initializer removed)     // Client identifier option code
     bit<8>   len;           // Length of identifier (variable)
     bit<8>   htype;         // Hardware type (same as in main header)
-    bit<8>   id[254];       // Client identifier (typically MAC address)
+    bit<2032> id;       // Client identifier (typically MAC address)
 };
 
-/​**​
+/**
  * DHCP Parameter Request List Option (Option 55)
  * Client requests specific configuration parameters
  */
 header dhcp_param_req_option {
-    bit<8>   code = 55;     // Parameter request list option code
+    // bit<8>   code = 55;  // (pseudocode: field initializer removed)     // Parameter request list option code
     bit<8>   len;           // Number of requested options (1-255)
-    bit<8>   options[255];  // List of requested option codes
+    bit<2040> options;  // List of requested option codes
 };
 
-/​**​
+/**
  * DHCP Transport Header (UDP)
  */
 header dhcp_transport {
@@ -118,19 +118,20 @@ header dhcp_transport {
     bit<16> checksum;       // UDP checksum
 };
 
-/​**​
+/**
  * DHCP Relay Agent Information Option (Option 82)
  * Used by relay agents to provide additional information
  */
 header dhcp_relay_agent_option {
-    bit<8>   code = 82;     // Relay agent information option code
+    // bit<8>   code = 82;  // (pseudocode: field initializer removed)     // Relay agent information option code
     bit<8>   len;           // Total length of sub-options
     // Sub-options would follow here in actual implementation
 };
 
-/​**​
+/**
  * P4 Parser Logic for DHCP
  */
+/*
 parser dhcp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.dhcp_transport);
@@ -152,14 +153,16 @@ parser dhcp_parser(packet_in pkt, out headers hdr) {
     }
     
     state parse_options {
-        /* Variable-length options parsing would be implemented here */
+        /* Variable-length options parsing would be implemented here * /
         transition accept;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for DHCP
  */
+/*
 control dhcp_control(inout headers hdr) {
     action handle_discover() {
         // Process DHCPDISCOVER message
@@ -189,3 +192,4 @@ control dhcp_control(inout headers hdr) {
         dhcp_message_handling.apply();
     }
 }
+*/

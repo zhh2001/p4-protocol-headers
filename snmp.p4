@@ -1,12 +1,12 @@
 /* SNMP version enumeration */
-enum snmp_version {
+enum bit<8> snmp_version {
     SNMPv1  = 0,    // SNMP version 1
     SNMPv2c = 1,    // SNMP version 2 community-based
     SNMPv3  = 2     // SNMP version 3 with security
 }
 
 /* SNMP PDU types */
-enum snmp_pdu_type {
+enum bit<8> snmp_pdu_type {
     GET_REQUEST      = 0xA0,             // Manager to agent request
     GET_NEXT_REQUEST = 0xA1,             // Get next variable request
     GET_RESPONSE     = 0xA2,             // Agent to manager response
@@ -18,7 +18,7 @@ enum snmp_pdu_type {
 }
 
 /* SNMP error status codes */
-enum snmp_error_status {
+enum bit<8> snmp_error_status {
     NO_ERROR     = 0,       // No error occurred
     TOO_BIG      = 1,       // Response too big to transport
     NO_SUCH_NAME = 2,       // Variable not found
@@ -27,19 +27,19 @@ enum snmp_error_status {
     GEN_ERR      = 5        // Other error
 }
 
-/​**​
+/**
  * SNMP message header
  */
 header snmp_message {
     bit<8>  version;          // SNMP protocol version
-    bit<8>  community[32];    // Community string for authentication
+    bit<256> community;    // Community string for authentication
     bit<8>  pdu_type;         // Type of PDU (snmp_pdu_type)
     bit<32> request_id;       // Matches requests with responses
     bit<32> error_status;     // Error indication (snmp_error_status)
     bit<32> error_index;      // Points to problematic variable
 }
 
-/​**​
+/**
  * SNMP v3 security parameters
  */
 header snmp_v3_security {
@@ -47,33 +47,33 @@ header snmp_v3_security {
     bit<32> msg_max_size;     // Maximum supported message size
     bit<8>  msg_flags;        // Security flags
     bit<32> msg_security;     // Security model identifier
-    bit<8>  auth_engine[32];  // Authentication engine ID
-    bit<8>  auth_params[12];  // Authentication parameters
-    bit<8>  priv_params[8];   // Encryption parameters
+    bit<256> auth_engine;  // Authentication engine ID
+    bit<96> auth_params;  // Authentication parameters
+    bit<64> priv_params;   // Encryption parameters
 }
 
-/​**​
+/**
  * SNMP variable binding (VarBind)
  */
 header snmp_varbind {
-    bit<8>  oid[32];         // Object identifier (OID)
+    bit<256> oid;         // Object identifier (OID)
     bit<8>  value_type;      // ASN.1 value type
     bit<16> value_length;    // Length of value field
-    bit<8>  value[1024];     // Actual value content
+    bit<2048> value;     // Actual value content
 }
 
-/​**​
+/**
  * SNMP Trap specific fields
  */
 header snmp_trap {
-    bit<8>  enterprise[32];  // Vendor OID
+    bit<256> enterprise;  // Vendor OID
     bit<32> agent_addr;      // Agent IP address
     bit<8>  generic_trap;    // Generic trap type
     bit<32> specific_trap;   // Specific trap code
     bit<32> time_stamp;      // Timestamp (sysUpTime)
 }
 
-/​**​
+/**
  * SNMP transport header (UDP)
  */
 header snmp_transport {

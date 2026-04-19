@@ -1,4 +1,4 @@
-/​**​
+/**
  * NNP Header Definition in P4
  * Neuromorphic Network Protocol for brain-inspired computing architectures
  * 
@@ -7,7 +7,7 @@
  */
 
 /* NNP Packet Types */
-enum nnp_packet_type {
+enum bit<8> nnp_packet_type {
     SPIKE_EVENT = 0x1,     // Neural spike event
     SYNAPSE_UPDATE = 0x2,  // Synaptic weight update
     TOPO_CONFIG = 0x4,     // Network topology configuration
@@ -15,7 +15,7 @@ enum nnp_packet_type {
 };
 
 /* NNP Neuron Encoding */
-enum nnp_encoding {
+enum bit<8> nnp_encoding {
     TEMPORAL = 0,        // Time-to-first-spike
     RATE = 1,            // Firing rate coding
     PHASE = 2,           // Phase-of-firing
@@ -23,14 +23,14 @@ enum nnp_encoding {
 };
 
 /* NNP Learning Rules */
-enum nnp_learning {
+enum bit<8> nnp_learning {
     STDP = 0,           // Spike-timing dependent plasticity
     HEBBIAN = 1,        // Hebbian learning
     RSTDP = 2,          // Reward-modulated STDP
     BCM = 3             // Bienenstock-Cooper-Munro rule
 };
 
-/​**​
+/**
  * NNP Base Header (12 bytes)
  * Core neuromorphic packet information
  */
@@ -42,7 +42,7 @@ header nnp_header {
     bit<32> timestamp;     // Spike timing (nanoseconds)
 };
 
-/​**​
+/**
  * NNP Spike Event (8 bytes)
  * Neural spike transmission
  */
@@ -55,7 +55,7 @@ header nnp_spike {
     bit<8>  reserved;
 };
 
-/​**​
+/**
  * NNP Synaptic Update (16 bytes)
  * Plasticity weight adjustment
  */
@@ -69,7 +69,7 @@ header nnp_synapse {
     bit<32> reward_signal;  // Reinforcement signal
 };
 
-/​**​
+/**
  * NNP Topology Configuration (Variable length)
  * Network structure definition
  */
@@ -79,23 +79,24 @@ header nnp_topology {
     bit<8> connectivity;   // Connection pattern
     bit<16> num_neurons;   // Number of neurons
     bit<16> num_synapses;  // Number of synapses
-    bit<8> params[];       // Model parameters
+    varbit<1024> params;       // Model parameters
 };
 
-/​**​
+/**
  * NNP Transport Header (Custom Ethernet)
  * Neuromorphic network encapsulation
  */
 header nnp_transport {
     bit<48> dst_mac;            // Destination MAC address
     bit<48> src_mac;            // Source MAC address
-    bit<16> eth_type = 0x8E88;  // NNP EtherType
+    // bit<16> eth_type = 0x8E88;  // (pseudocode: field initializer removed)  // NNP EtherType
     bit<32> fabric_tag;         // Neuromorphic fabric ID
 };
 
-/​**​
+/**
  * P4 Parser Logic for NNP
  */
+/*
 parser nnp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.nnp_transport);
@@ -114,10 +115,12 @@ parser nnp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for NNP packet types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for NNP
  */
+/*
 control nnp_control(inout headers hdr) {
     action route_spike() {
         // Route spike to target neuromorphic core
@@ -166,3 +169,4 @@ control nnp_control(inout headers hdr) {
         nnp_processing.apply();
     }
 }
+*/

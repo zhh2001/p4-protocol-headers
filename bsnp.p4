@@ -1,4 +1,4 @@
-/​**​
+/**
  * BSNP Header Definition in P4
  * Biosensor Network Protocol for medical-grade physiological data transmission
  * 
@@ -7,7 +7,7 @@
  */
 
 /* BSNP Data Categories */
-enum bsnp_data_category {
+enum bit<8> bsnp_data_category {
     CONTINUOUS = 0x1,   // Real-time streaming data (ECG, EEG)
     PERIODIC   = 0x2,   // Regular interval samples (glucose, SpO2)
     EVENT      = 0x4,   // Threshold-triggered alerts (arrhythmia)
@@ -15,7 +15,7 @@ enum bsnp_data_category {
 };
 
 /* BSNP Security Levels */
-enum bsnp_security {
+enum bit<8> bsnp_security {
     UNENCRYPTED   = 0,  // Non-sensitive data (step count)
     ENCRYPTED     = 1,  // Standard health data (HR)
     MEDICAL_GRADE = 2,  // Regulated medical data (ECG)
@@ -23,7 +23,7 @@ enum bsnp_security {
 };
 
 /* BSNP Sensor Types */
-enum bsnp_sensor_type {
+enum bit<8> bsnp_sensor_type {
     ECG     = 0x01,  // Electrocardiography
     PPG     = 0x02,  // Photoplethysmography
     EEG     = 0x04,  // Electroencephalography
@@ -31,7 +31,7 @@ enum bsnp_sensor_type {
     GLUCOSE = 0x10,  // Continuous glucose monitor
 };
 
-/​**​
+/**
  * BSNP Base Header
  * Core biometric transmission header
  */
@@ -46,7 +46,7 @@ header bsnp_header {
     bit<5>  reserved;
 };
 
-/​**​
+/**
  * BSNP ECG Payload (Variable length)
  * Electrocardiogram data packet
  */
@@ -55,10 +55,10 @@ header bsnp_ecg {
     bit<16> sample_rate;  // Samples per second
     bit<8>  bit_depth;    // ADC resolution
     bit<8>  gain;         // Amplification factor
-    bit<16> samples[];    // ECG waveform data
+    varbit<1024> samples;    // ECG waveform data
 };
 
-/​**​
+/**
  * BSNP Alert Header (12 bytes)
  * Critical health event notification
  */
@@ -70,19 +70,19 @@ header bsnp_alert {
     bit<16> metadata;    // Additional context
 };
 
-/​**​
+/**
  * BSNP Security Header (Variable length)
  * HIPAA-compliant security wrapper
  */
-header bsnp_security {
+header bsnp_security_t {
     bit<16> key_id;        // Encryption key identifier
     bit<16> auth_tag_len;  // Authentication tag length
     bit<32> iv;            // Initialization vector
-    bit<8>  auth_tag[];    // HMAC-SHA256 tag
-    bit<8>  payload[];     // Encrypted payload
+    varbit<1024> auth_tag;    // HMAC-SHA256 tag
+    varbit<1024> payload;     // Encrypted payload
 };
 
-/​**​
+/**
  * IEEE 11073 Transport Header (8 bytes)
  * Medical device communication standard
  */
@@ -90,13 +90,14 @@ header ieee11073_transport {
     bit<16> src_mac;   // Sensor MAC address
     bit<16> dest_mac;  // Gateway MAC
     bit<16> apdu_len;  // Application data length
-    bit<8>  control;   // Transport control
+    bit<8>  ctrl;      // Transport control
     bit<8>  priority;  // 0-7 priority level
 };
 
-/​**​
+/**
  * P4 Parser Logic for BSNP
  */
+/*
 parser bsnp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ieee11073_transport);
@@ -122,10 +123,12 @@ parser bsnp_parser(packet_in pkt, out headers hdr) {
         transition process_alert;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for BSNP
  */
+/*
 control bsnp_control(inout headers hdr) {
     action prioritize_alert() {
         // Emergency alert prioritization
@@ -179,3 +182,4 @@ control bsnp_control(inout headers hdr) {
         bsnp_processing.apply();
     }
 }
+*/

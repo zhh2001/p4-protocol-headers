@@ -3,7 +3,7 @@
  * 周期性排队与转发协议报头 - 实现无冲突的确定性传输             
  * Cyclic Queuing and Forwarding Header                    
  * Enables collision-free deterministic forwarding          
- ​**********************************************************/
+ **********************************************************/
 
 header cqf_t {
     // ---- 基础调度字段 ----

@@ -3,7 +3,7 @@
  * 快速UDP互联网连接协议报头 - 下一代HTTP/3传输层协议
  * Quick UDP Internet Connections Header
  * Next-gen transport protocol for HTTP/3
- ​**********************************************************/
+ **********************************************************/
 
 header quic_t {
     // ---- 公共头部字段 (所有 QUIC 报文通用) ----
@@ -16,13 +16,13 @@ header quic_t {
     bit<8>        dcil;              // Destination Connection ID Length                  目标连接 ID 长度 (字节数)
     bit<8>        scil;              // Source Connection ID Length                       源连接 ID 长度 (字节数)
     bit<64>       length;            // Packet length (bytes remaining)                   报文长度 (剩余部分的字节数)
-    bit<variable> dc_id;             // Destination Connection ID                         目标连接ID (长度由 dcil 决定)
-    bit<variable> sc_id;             // Source Connection ID                              源连接ID (长度由 scil 决定)
+    varbit<256> dc_id;             // Destination Connection ID                         目标连接ID (长度由 dcil 决定)
+    varbit<256> sc_id;             // Source Connection ID                              源连接ID (长度由 scil 决定)
 
     // 短头部特定字段 (当 header_form=0 时)
     bit<1>        spin_bit;       // Latency spin bit           延迟测量位 (用于 RTT 计算)
     bit<2>        reserved_bits;  // Reserved bits (must be 0)  保留位 (必须为 0)
-    bit<variable> dc_id;          // Destination Connection ID  目标连接 ID (长度由连接建立时协商)
+    // Note: short header dc_id shares the dc_id field above
 
     // ---- 加密帧头部 (所有 QUIC 版本通用) ----
     bit<8>  packet_number_length;  // Packet number length (1/2/4 bytes)  包号长度 (1/2/4字节)

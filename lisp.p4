@@ -74,7 +74,7 @@ header lisp_map_record_t {
     bit<8>   locator_count;  // RLOC 地址数量
     bit<16>  eid_mask_len;   // EID 前缀长度
     bit<128> eid_prefix;     // EID 前缀
-    rloc_entry_t[16] rlocs;  // RLOC 地址列表
+    // rloc_entry_t[16] rlocs;  // RLOC 地址列表  // (removed: nested header reference)
 }
 //     3. 流量工程支持：( ↓ Example ↓ )
 header rloc_entry_t {
@@ -89,13 +89,15 @@ header rloc_entry_t {
 //     1. 初始通信：
 //         - ITR（Ingress Tunnel Router）发送 Map-Request
 //         - ETR（Egress Tunnel Router）返回 Map-Reply
-//     2. ​数据封装：( ↓ Example ↓ )
+//     2. 数据封装：( ↓ Example ↓ )
+/*
 action lisp_encapsulate() {
     lisp_encap.setValid();
     lisp_encap.instance_id = 32w0x12345678;
     lisp_encap.source_rloc_ipv4 = 32w0x0A010101;  // ITR RLOC
     lisp_encap.dest_rloc_ipv4 = 32w0x0B020202;    // ETR RLOC
 }
+*/
 //     3. 移动性处理：
 //         - 当终端移动时更新 EID-RLOC 映射
 //         - 通过 Map-Notify 同步映射变更

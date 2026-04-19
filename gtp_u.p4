@@ -1,4 +1,4 @@
-// ​GTP-U (GPRS Tunneling Protocol User Plane)  4G/5G移动网络中的核心用户面封装协议
+// GTP-U (GPRS Tunneling Protocol User Plane)  4G/5G移动网络中的核心用户面封装协议
 header gtp_u_t {
     // 基础头部 - 3GPP TS 29.281
     // Base header
@@ -34,18 +34,23 @@ header gtp_u_5gc_t {
 
 
 // Example: 移动性管理 (Pseudocode)
+/*
 action set_teid() {
     gtp_u_t.teid = (ue_id << 16) | bearer_id;
     gtp_u_t.s_bit = 1w1;  // 启用序列号
 }
+*/
 
 // Example: 5G 集成 (Pseudocode)
+/*
 action add_5gc_extension() {
     gtp_u_t.e_bit = 1w1;
     gtp_u_5gc_t.qfi = (dscp >> 2) & 0x3F;  // 转换 DSCP 到 QFI
 }
+*/
 
 // Example: 负载均衡 (Pseudocode)
+/*
 table gtp_load_balancing {
     key = {
         gtp_u.teid: exact;
@@ -56,6 +61,7 @@ table gtp_load_balancing {
     }
     size = 65536;
 }
+*/
 
 
 // 典型工作流程：
@@ -63,17 +69,21 @@ table gtp_load_balancing {
 //         - SMF 分配 TEID 并通过 N4 接口下发
 //         - UPF 编程 P4 转发表项
 //     2. 数据转发：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action encapsulate_gtp() {
     gtp_u_t.setValid();
     gtp_u_t.message_type = 0xFF;
     gtp_u_t.length = inner_ipv4.totalLen;
 }
+*/
 //     3. QoS 执行：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 meter qos_meter {
     type = packets;
     result = gtp_u_5gc_t.qfi;
     size = 64;
 }
+*/
 //     4. 路径切换：
 //         - 通过扩展头携带 N3/N9 隧道信息
 //         - 支持 End Marker 标记包

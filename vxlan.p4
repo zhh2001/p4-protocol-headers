@@ -1,4 +1,4 @@
-/​**​
+/**
  * VXLAN Header Definition in P4
  * Virtual Extensible LAN protocol for network virtualization
  * 
@@ -7,14 +7,14 @@
  */
 
 /* VXLAN Flags */
-enum vxlan_flags {
+enum bit<8> vxlan_flags {
     I_FLAG  = 0x08,  // Indicates valid VNI present
     R_FLAG  = 0x04,  // Reserved for future use
     R_FLAG2 = 0x02,  // Reserved for future use
     R_FLAG3 = 0x01   // Reserved for future use
 };
 
-/​**​
+/**
  * VXLAN Header (8 bytes)
  * Encapsulation header for overlay networks
  */
@@ -25,7 +25,7 @@ header vxlan_header {
     bit<8>  reserved2;      // Reserved field (must be 0)
 };
 
-/​**​
+/**
  * Inner Ethernet Header (14 bytes)
  * Original L2 frame being encapsulated
  */
@@ -35,7 +35,7 @@ header inner_ethernet {
     bit<16> eth_type;     // EtherType of payload
 };
 
-/​**​
+/**
  * UDP Header (8 bytes)
  * Transport protocol for VXLAN
  */
@@ -46,7 +46,7 @@ header vxlan_udp {
     bit<16> checksum;     // UDP checksum (optional for IPv4)
 };
 
-/​**​
+/**
  * Outer IP Header (20 bytes)
  * Underlay routing header
  */
@@ -57,18 +57,18 @@ header vxlan_ip {
     bit<16> identification;     // IP identification
     bit<16> flags_frag_offset;  // Flags (3 bits) + Fragment offset (13 bits)
     bit<8>  ttl;                // Time to live
-    bit<8>  protocol = 17;      // UDP protocol number
+    // bit<8>  protocol = 17;  // (pseudocode: field initializer removed)      // UDP protocol number
     bit<16> header_checksum;    // IP header checksum
     bit<32> src_ip;             // Source IP address (VTEP address)
     bit<32> dst_ip;             // Destination IP address (VTEP address)
 };
 
-/​**​
+/**
  * VXLAN Packet Structure:
  * [Outer Ethernet][Outer IP][UDP][VXLAN][Inner Ethernet][Payload]
  */
 
-/​**​
+/**
  * VXLAN Termination Header
  * Used by VXLAN gateways for additional processing
  */
@@ -79,9 +79,10 @@ header vxlan_termination {
     bit<32> tenant_id;     // Tenant identifier
 };
 
-/​**​
+/**
  * P4 Parser Logic for VXLAN
  */
+/*
 parser vxlan_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.outer_ethernet);
@@ -123,10 +124,12 @@ parser vxlan_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for inner payload...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for VXLAN
  */
+/*
 control vxlan_control(inout headers hdr) {
     action encapsulate() {
         // Apply VXLAN encapsulation to original frame
@@ -163,3 +166,4 @@ control vxlan_control(inout headers hdr) {
         vxlan_processing.apply();
     }
 }
+*/

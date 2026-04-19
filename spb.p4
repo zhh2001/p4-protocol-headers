@@ -67,28 +67,32 @@ const iSid_t I_SID_MCAST_VIDEO   = 32w0x000100;  // 组播视频服务
 
 
 // 关键特性说明：
-//     1. ​多路径转发：基于 IS-IS 的 ECMP（等价多路径）支持
-//     2. ​服务实例标识：通过 24 位 I-SID 实现 L2 服务隔离
-//     3. ​快速收敛：继承 IS-IS 的亚秒级拓扑收敛能力
-//     4. ​向后兼容：可与传统 STP/RSTP 网络互通
+//     1. 多路径转发：基于 IS-IS 的 ECMP（等价多路径）支持
+//     2. 服务实例标识：通过 24 位 I-SID 实现 L2 服务隔离
+//     3. 快速收敛：继承 IS-IS 的亚秒级拓扑收敛能力
+//     4. 向后兼容：可与传统 STP/RSTP 网络互通
 
 
 // 典型工作流程：
 //     1. 邻居发现：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action send_spb_hello() {
     spb.setValid();
     spb.topology_change = 1w0;
     spb.root_path_cost = 32w0;
     spb.bridge_priority = 16w0x8000;  // 默认优先级
 }
+*/
 //     2. 拓扑计算：
 //         - 使用 IS-IS LSDB 构建最短路径树
 //         - 基于链路度量计算多路径转发
 //     3. 服务注册：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action register_i_sid() {
     spb_isis_tlv.i_sid = 32w0x0000FF;  // 自定义服务ID
     spb_isis_tlv.link_metric = 24w10;  // 路径开销
 }
+*/
 //     4. 拓扑计算：
 //         - 根据 I-SID 进行服务实例映射
 //         - 基于 VLAN + MAC + I-SID 三元组转发表

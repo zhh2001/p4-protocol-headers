@@ -1,4 +1,4 @@
-/​**​
+/**
  * gNMI Header Definition in P4
  * gNMI 协议 P4 定义
  * 
@@ -7,14 +7,14 @@
  */
 
 /* gNMI Service Types */
-enum gnmi_service_type {
+enum bit<8> gnmi_service_type {
     CAPABILITIES = 0,   // 获取设备能力
     GET          = 1,   // 获取配置或状态数据
     SET          = 2,   // 修改配置数据
     SUBSCRIBE    = 3    // 订阅数据更新
 }
 
-/​**​
+/**
  * gNMI Message Header
  * gNMI 消息头
  */
@@ -48,7 +48,7 @@ header gnmi_header {
     bit<32> message_length;
 }
 
-/​**​
+/**
  * gNMI Path Element
  * gNMI 路径元素
  */
@@ -68,7 +68,7 @@ header gnmi_path_element {
     bit<16> key_count;
 }
 
-/​**​
+/**
  * gNMI Path Key
  * gNMI 路径键
  */
@@ -88,7 +88,7 @@ header gnmi_path_key {
     bit<16> value_length;
 }
 
-/​**​
+/**
  * gNMI Subscription
  * gNMI 订阅
  */
@@ -122,7 +122,7 @@ header gnmi_subscription {
     bit<32> heartbeat_interval;
 }
 
-/​**​
+/**
  * gNMI Update
  * gNMI 更新
  */
@@ -149,7 +149,7 @@ header gnmi_update {
     bit<64> timestamp;
 }
 
-/​**​
+/**
  * gNMI Notification
  * gNMI 通知
  */
@@ -176,7 +176,7 @@ header gnmi_notification {
     bit<32> delete_count;
 }
 
-/​**​
+/**
  * gNMI Error
  * gNMI 错误
  */
@@ -203,7 +203,7 @@ header gnmi_error {
     bit<16> data_length;
 }
 
-/​**​
+/**
  * gNMI Transport Header (over gRPC)
  * gNMI 传输头(基于 gRPC)
  */
@@ -230,7 +230,7 @@ header gnmi_transport_header {
     bit<32> stream_id;
 }
 
-/​**​
+/**
  * gNMI Capability Response
  * gNMI能力响应
  */

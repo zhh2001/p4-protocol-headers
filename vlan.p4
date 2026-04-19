@@ -1,4 +1,4 @@
-/​**​
+/**
  * 802.1Q VLAN Header Definition in P4
  * Virtual LAN tagging protocol for network segmentation
  * 
@@ -7,7 +7,7 @@
  */
 
 /* VLAN Priority Levels (PCP) */
-enum vlan_priority {
+enum bit<8> vlan_priority {
     BK = 0,  // Background (lowest)
     BE = 1,  // Best Effort
     EE = 2,  // Excellent Effort
@@ -19,13 +19,13 @@ enum vlan_priority {
 };
 
 /* VLAN Encapsulation Types */
-enum vlan_encap {
+enum bit<16> vlan_encap {
     DOT1Q    = 0x8100,  // Standard 802.1Q
     DOT1AD   = 0x88A8,  // Q-in-Q (802.1ad)
     DOT1QINQ = 0x9100,  // Legacy QinQ
 };
 
-/​**​
+/**
  * 802.1Q VLAN Tag (4 bytes)
  * Inserted after Ethernet header
  */
@@ -36,7 +36,7 @@ header dot1q_header {
     bit<16> ether_type;  // Encapsulated protocol
 };
 
-/​**​
+/**
  * Ethernet Header (14 bytes)
  * Original header before VLAN insertion
  */
@@ -46,9 +46,10 @@ header ethernet_header {
     bit<16> ether_type;  // Original EtherType or VLAN tag
 };
 
-/​**​
+/**
  * P4 Parser Logic for VLAN
  */
+/*
 parser vlan_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ethernet_header);
@@ -78,10 +79,12 @@ parser vlan_parser(packet_in pkt, out headers hdr) {
         transition accept;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for VLAN
  */
+/*
 control vlan_control(inout headers hdr) {
     action route_by_vlan() {
         // VLAN-based forwarding
@@ -127,3 +130,4 @@ control vlan_control(inout headers hdr) {
         }
     }
 }
+*/

@@ -3,7 +3,7 @@
  * 帧抢占协议报头 - 实现高优先级帧中断低优先级帧传输             
  * Frame Preemption Header                                 
  * Enables interruption of low-priority frames for urgent traffic 
- ​**********************************************************/
+ **********************************************************/
 
 header fp_t {
     // ---- 抢占控制字段 (4 字节) ----
@@ -18,6 +18,7 @@ header fp_t {
 
 
 // Example: 抢占决策逻辑 (Pseudocode)
+/*
 action check_preemption() {
     if (hdr.fp.preemptible && urgent_frame_available) {
         // 中断当前低优先级帧，插入高优先级帧
@@ -26,8 +27,10 @@ action check_preemption() {
         hdr.fp.fragmented = 1;  // 标记分片状态[3,4](@ref)
     }
 }
+*/
 
 // Example: 分片重组机制 (Pseudocode)
+/*
 table fragment_reassembly {
     key = { hdr.fp.fragment_id : exact; }
     actions = { reassemble_frames, discard_fragment }
@@ -35,3 +38,4 @@ table fragment_reassembly {
         0x0 -> discard_fragment;  // 默认丢弃无效分片
     }
 }
+*/

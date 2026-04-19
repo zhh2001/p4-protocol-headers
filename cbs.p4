@@ -3,7 +3,7 @@
  * 基于信用的流量整形协议报头 - 实现突发流量控制与带宽保障          
  * Credit-Based Shaper Header                              
  * Manages burst traffic and ensures bandwidth allocation  
- ​**********************************************************/
+ **********************************************************/
 
 header cbs_t {
     // ---- 信用控制字段 (4 字节) ----
@@ -18,6 +18,7 @@ header cbs_t {
 }
 
 // 信用动态计算逻辑 (Pseudocode)
+/*
 action update_credit() {
     // Class A 信用值在空闲时增长，发送时减少
     if (hdr.cbs.class_type == 0) {
@@ -30,8 +31,10 @@ action update_credit() {
         hdr.cbs.credit_value = clamp(hdr.cbs.credit_value, -hdr.cbs.max_credit, hdr.cbs.max_credit);
     }
 }
+*/
 
 // 双队列调度机制 (Pseudocode)
+/*
 table class_based_scheduling {
     key = { hdr.vlan.pcp : exact; }
     actions = { assign_class_a, assign_class_b, drop }
@@ -40,3 +43,4 @@ table class_based_scheduling {
         5 -> assign_class_b;  // 视频流等中等优先级
     }
 }
+*/

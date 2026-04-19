@@ -1,4 +1,4 @@
-/​**​
+/**
  * BGP Header Definition in P4
  * Border Gateway Protocol for inter-domain routing
  * 
@@ -7,7 +7,7 @@
  */
 
 /* BGP Message Types */
-enum bgp_message_type {
+enum bit<8> bgp_message_type {
     OPEN          = 1,         // Initiate BGP peer connection
     UPDATE        = 2,         // Exchange routing information
     NOTIFICATION  = 3,         // Error notification
@@ -16,7 +16,7 @@ enum bgp_message_type {
 };
 
 /* BGP Attribute Types */
-enum bgp_attribute_type {
+enum bit<8> bgp_attribute_type {
     ORIGIN = 1,            // Path origin attribute
     AS_PATH = 2,           // AS path attribute
     NEXT_HOP = 3,          // Next hop attribute
@@ -29,17 +29,17 @@ enum bgp_attribute_type {
     CLUSTER_LIST = 10      // Route reflector cluster list
 };
 
-/​**​
+/**
  * BGP Common Header (19 bytes)
  * Every BGP message starts with this header
  */
 header bgp_header {
-    bit<16> marker[8];     // Synchronization and authentication (all 1's for OPEN/KEEPALIVE)
+    bit<128> marker;     // Synchronization and authentication (all 1's for OPEN/KEEPALIVE)
     bit<16> length;        // Total message length including header
     bit<8> type;           // BGP message type (bgp_message_type enum)
 };
 
-/​**​
+/**
  * BGP OPEN Message (29+ bytes)
  * Used to establish BGP peer connection
  */
@@ -51,17 +51,17 @@ header bgp_open {
     bit<8>  opt_param_len;  // Optional parameters length (0 if none)
 };
 
-/​**​
+/**
  * BGP Optional Parameter (Variable length)
  * Used in OPEN message for capabilities negotiation
  */
 header bgp_opt_param {
     bit<8> param_type;     // Parameter type
     bit<8> param_len;      // Parameter length
-    bit<8> param_value[];  // Parameter value (variable length)
+    varbit<1024> param_value;  // Parameter value (variable length)
 };
 
-/​**​
+/**
  * BGP UPDATE Message (Variable length)
  * Carries routing information updates
  */
@@ -71,7 +71,7 @@ header bgp_update {
     bit<32> nlri_len;      // Network Layer Reachability Info length
 };
 
-/​**​
+/**
  * BGP Path Attribute (Variable length)
  * Describes characteristics of the advertised path
  */
@@ -85,40 +85,40 @@ header bgp_path_attr {
     bit<16> attr_len;       // Attribute length (1 or 2 bytes based on extended_len)
 };
 
-/​**​
+/**
  * BGP AS_PATH Attribute (Variable length)
  * Lists ASes through which routing info has passed
  */
 header bgp_as_path {
     bit<8> path_seg_type;   // 1=AS_SET, 2=AS_SEQUENCE
     bit<8> path_seg_len;    // Number of ASes in this segment
-    bit<16> as_numbers[];   // AS numbers (variable length)
+    varbit<1024> as_numbers;   // AS numbers (variable length)
 };
 
-/​**​
+/**
  * BGP COMMUNITIES Attribute (Variable length)
  * Used for route tagging and policy applications
  */
 header bgp_community {
-    bit<32> community[];  // List of community values
+    varbit<1024> community;  // List of community values
 };
 
-/​**​
+/**
  * BGP NOTIFICATION Message (Variable length)
  * Sent when error condition is detected
  */
 header bgp_notification {
     bit<8> error_code;    // Major error category
     bit<8> error_subcode; // Specific error within category
-    bit<8> data[];       // Diagnostic data (variable length)
+    varbit<1024> data;       // Diagnostic data (variable length)
 };
 
-/​**​
+/**
  * BGP KEEPALIVE Message (19 bytes)
  * Consists only of BGP header (type=4)
  */
 
-/​**​
+/**
  * BGP ROUTE_REFRESH Message (23 bytes)
  * Requests re-advertisement of routes (RFC 2918)
  */
@@ -128,7 +128,7 @@ header bgp_route_refresh {
     bit<8> reserved;    // Must be 0
 };
 
-/​**​
+/**
  * BGP Transport Header (TCP)
  */
 header bgp_transport {
@@ -140,9 +140,10 @@ header bgp_transport {
     bit<16> checksum;     // TCP checksum
 };
 
-/​**​
+/**
  * P4 Parser Logic for BGP
  */
+/*
 parser bgp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.bgp_transport);
@@ -170,16 +171,18 @@ parser bgp_parser(packet_in pkt, out headers hdr) {
     }
     
     state parse_bgp_opt_params {
-        /* Variable-length optional parameters parsing */
+        /* Variable-length optional parameters parsing * /
         transition accept;
     }
     
     // Additional parse states for other message types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for BGP
  */
+/*
 control bgp_control(inout headers hdr) {
     action process_open() {
         // Process OPEN message and prepare response
@@ -210,3 +213,4 @@ control bgp_control(inout headers hdr) {
         bgp_message_handling.apply();
     }
 }
+*/

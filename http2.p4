@@ -1,4 +1,4 @@
-/​**​
+/**
  * HTTP/2 Header Definition in P4
  * Hypertext Transfer Protocol version 2 over TCP
  * 
@@ -7,7 +7,7 @@
  */
 
 /* HTTP/2 Frame Types */
-enum http2_frame_type {
+enum bit<8> http2_frame_type {
     DATA = 0x0,          // Payload data
     HEADERS = 0x1,       // HTTP headers
     PRIORITY = 0x2,      // Stream priority
@@ -20,7 +20,7 @@ enum http2_frame_type {
 };
 
 /* HTTP/2 Flags */
-enum http2_flags {
+enum bit<8> http2_flags {
     END_STREAM = 0x1,     // Stream termination
     ACK = 0x1,            // Settings/PING acknowledgment
     END_HEADERS = 0x4,    // Complete header block
@@ -28,7 +28,7 @@ enum http2_flags {
     PRIORITY_FLAG = 0x20  // Priority information
 };
 
-/​**​
+/**
  * HTTP/2 Frame Header (9 bytes)
  * Common prefix for all frame types
  */
@@ -40,17 +40,17 @@ header http2_frame_header {
     bit<1>  reserved;     // Reserved bit
 };
 
-/​**​
+/**
  * HTTP/2 DATA Frame (Variable length)
  * Application payload frame
  */
 header http2_data {
     bit<8> pad_length;    // Padding length (if PADDED flag set)
-    bit<8> data[];        // Application data
-    bit<8> padding[];     // Padding bytes (if any)
+    varbit<1024> data;        // Application data
+    varbit<1024> padding;     // Padding bytes (if any)
 };
 
-/​**​
+/**
  * HTTP/2 HEADERS Frame (Variable length)
  * Header block with optional priority
  */
@@ -59,11 +59,11 @@ header http2_headers {
     bit<31> dep_stream_id;   // Dependent stream ID (if PRIORITY_FLAG)
     bit<1>  exclusive;       // Exclusive dependency flag
     bit<8>  weight;          // Stream weight (1-256)
-    bit<8>  header_block[];  // HPACK compressed headers
-    bit<8>  padding[];       // Padding bytes (if any)
+    varbit<1024> header_block;  // HPACK compressed headers
+    varbit<1024> padding;       // Padding bytes (if any)
 };
 
-/​**​
+/**
  * HTTP/2 SETTINGS Frame (Variable length)
  * Connection configuration parameters
  */
@@ -72,7 +72,7 @@ header http2_settings {
     bit<32> param_value;  // Setting value
 };
 
-/​**​
+/**
  * TCP Transport Header (20 bytes)
  * Standard TCP header for HTTP/2
  */
@@ -89,9 +89,10 @@ header tcp_transport {
     bit<16> urgent_ptr;   // Urgent pointer
 };
 
-/​**​
+/**
  * P4 Parser Logic for HTTP/2
  */
+/*
 parser http2_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.tcp_transport);
@@ -119,10 +120,12 @@ parser http2_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for other frame types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for HTTP/2
  */
+/*
 control http2_control(inout headers hdr) {
     action process_data_payload() {
         // Process HTTP/2 data frame
@@ -177,3 +180,4 @@ control http2_control(inout headers hdr) {
         http2_processing.apply();
     }
 }
+*/

@@ -1,4 +1,4 @@
-/​**​
+/**
  * IPFIX Header Definition in P4
  * IPFIX 协议 P4 定义
  * 
@@ -7,14 +7,14 @@
  */
 
 /* IPFIX Message Types */
-enum ipfix_message_type {
+enum bit<8> ipfix_message_type {
     TEMPLATE_FLOWSET = 0,   // 模板流集合
     DATA_FLOWSET     = 1,   // 数据流集合
     OPTIONS_TEMPLATE = 2,   // 选项模板
     OPTIONS_DATA     = 3    // 选项数据
 }
 
-/​**​
+/**
  * IPFIX Message Header (RFC 7011)
  * IPFIX 消息头(16 字节)
  */
@@ -55,7 +55,7 @@ header ipfix_header {
     bit<32> observation_domain_id;
 }
 
-/​**​
+/**
  * IPFIX Set Header (FlowSet Header)
  * IPFIX 集合头(流集合头)
  */
@@ -81,7 +81,7 @@ header ipfix_set_header {
     bit<16> length;
 }
 
-/​**​
+/**
  * IPFIX Template Record Header
  * IPFIX 模板记录头
  */
@@ -101,7 +101,7 @@ header ipfix_template_header {
     bit<16> field_count;
 }
 
-/​**​
+/**
  * IPFIX Template Field Specifier
  * IPFIX 模板字段定义
  */
@@ -135,7 +135,7 @@ header ipfix_field_specifier {
     bit<32> enterprise_number; // Conditional field
 }
 
-/​**​
+/**
  * IPFIX Data Record
  * IPFIX 数据记录
  */
@@ -148,7 +148,7 @@ header ipfix_data_record {
     varbit<65535> fields;  // Maximum size limited by set length
 }
 
-/​**​
+/**
  * Common Flow Fields (Example)
  * 常见流字段定义(示例)
  */
@@ -203,7 +203,7 @@ header ipfix_common_flow_fields {
     bit<64> octet_delta_count;
 }
 
-/​**​
+/**
  * IPFIX Transport Header (typically over UDP or SCTP)
  * IPFIX 传输头(通常基于 UDP 或 SCTP)
  */

@@ -1,4 +1,4 @@
-/​**​
+/**
  * UDP Header Definition in P4
  * User Datagram Protocol for connectionless communication
  * 
@@ -7,7 +7,7 @@
  */
 
 /* Well-known UDP Ports */
-enum udp_ports {
+enum bit<8> udp_ports {
     DNS = 53,          // Domain Name System
     DHCP_CLIENT = 68,  // DHCP Client
     DHCP_SERVER = 67,  // DHCP Server
@@ -16,7 +16,7 @@ enum udp_ports {
     TFTP = 69          // Trivial File Transfer
 };
 
-/​**​
+/**
  * UDP Header (8 bytes)
  * Standard UDP header format
  */
@@ -27,12 +27,12 @@ header udp_header {
     bit<16> checksum;   // Optional checksum (IPv4 requires)
 };
 
-/​**​
+/**
  * IPv4 Transport Header (20 bytes)
  * IPv4 header for UDP encapsulation
  */
 header ipv4_header {
-    bit<4> version = 4;   // IP version (4)
+    // bit<4> version = 4;  // (pseudocode: field initializer removed)   // IP version (4)
     bit<4> ihl;         // Internet header length
     bit<8> dscp;        // Differentiated services
     bit<16> total_length; // Total packet length
@@ -40,30 +40,31 @@ header ipv4_header {
     bit<3>  flags;      // Fragmentation flags
     bit<13> frag_offset; // Fragment offset
     bit<8>  ttl;       // Time to live
-    bit<8>  protocol = 17; // UDP protocol number
+    // bit<8>  protocol = 17;  // (pseudocode: field initializer removed) // UDP protocol number
     bit<16> header_checksum; // Header checksum
     bit<32> src_addr; // Source IP address
     bit<32> dst_addr; // Destination IP address
 };
 
-/​**​
+/**
  * IPv6 Transport Header (40 bytes)
  * IPv6 header for UDP encapsulation
  */
 header ipv6_header {
-    bit<4>   version = 6;   // IP version (6)
+    // bit<4>   version = 6;  // (pseudocode: field initializer removed)   // IP version (6)
     bit<8>   traffic_class; // Traffic class
     bit<20>  flow_label;  // Flow label
     bit<16>  payload_length; // UDP packet length
-    bit<8>   next_header = 17; // UDP protocol number
+    // bit<8>   next_header = 17;  // (pseudocode: field initializer removed) // UDP protocol number
     bit<8>   hop_limit;    // Hop limit
     bit<128> src_addr;  // Source IPv6 address
     bit<128> dst_addr;  // Destination IPv6 address
 };
 
-/​**​
+/**
  * P4 Parser Logic for UDP
  */
+/*
 parser udp_parser(packet_in pkt, out headers hdr) {
     state start {
         // Peek IP version to determine encapsulation
@@ -104,10 +105,12 @@ parser udp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for UDP payloads...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for UDP
  */
+/*
 control udp_control(inout headers hdr) {
     action forward_udp() {
         // Basic UDP forwarding logic
@@ -151,3 +154,4 @@ control udp_control(inout headers hdr) {
         udp_processing.apply();
     }
 }
+*/

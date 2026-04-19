@@ -28,7 +28,7 @@ header bgp_ls_t {
     
     // 节点描述符 (可变长度)
     // Node Descriptors (variable)
-    bgp_ls_node_desc_t node_desc;
+    // bgp_ls_node_desc_t node_desc;  // (removed: nested header reference)
     
     // 链路/前缀描述符 (可变长度)
     // Link/Prefix Descriptors
@@ -55,11 +55,13 @@ const protocolId_t BGP_LS_PROTO_BABEL  = 8w5;  // Babel 协议
 
 
 // 关键特性说明：
-//     1. ​多协议支持：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+//     1. 多协议支持：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action encode_isis_topology() {
     bgp_ls.protocol_id = 8w1;  // IS-IS
     bgp_ls.node_desc.tlv_type = BGP_LS_IGP_ROUTER_ID;
 }
+*/
 //     2. 拓扑元素编码：( ↓↓↓ Example, Pseudocode ↓↓↓ )
 header bgp_ls_link_tlv_t {
     bit<32>   local_node_id;   // 本地节点标识
@@ -69,10 +71,12 @@ header bgp_ls_link_tlv_t {
     bit<24>   te_metric;       // 流量工程度量
 }
 //     3. SDN集成：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action send_to_controller() {
     bgp_ls.ls_nlri_type = 1;  // 节点 NLRI
     bgp_ls.instance_id = 64w0x12345678;
 }
+*/
 
 
 // 典型工作流程：
@@ -80,6 +84,7 @@ action send_to_controller() {
 //         - 路由器将 IGP 拓扑转换为 BGP-LS NLRI
 //         - 通过 MP_REACH_NLRI 属性传播
 //     2. 控制器同步：
+/*
 table bgp_ls_export {
     key = {
         igp_protocol: exact;
@@ -90,6 +95,7 @@ table bgp_ls_export {
     }
     size = 3;
 }
+*/
 //     3. 路径计算：
 //         - 控制器基于全网拓扑计算跨域路径
 //         - 通过 PCEP/BGP-SR 下发路径策略

@@ -1,4 +1,4 @@
-/​**​
+/**
  * GRE Header Definition in P4
  * Generic Routing Encapsulation protocol for tunneling
  * 
@@ -7,7 +7,7 @@
  */
 
 /* GRE Flags */
-enum gre_flags {
+enum bit<16> gre_flags {
     CHECKSUM_PRESENT = 0x8000,  // Checksum present
     KEY_PRESENT      = 0x2000,  // Key present
     SEQUENCE_PRESENT = 0x1000,  // Sequence number present
@@ -15,7 +15,7 @@ enum gre_flags {
 };
 
 /* GRE Protocol Types */
-enum gre_protocol_type {
+enum bit<16> gre_protocol_type {
     IP     = 0x0800,        // IPv4 payload
     IPV6   = 0x86DD,        // IPv6 payload
     MPLS   = 0x8847,        // MPLS payload
@@ -23,7 +23,7 @@ enum gre_protocol_type {
     VXLAN  = 0x6558         // VXLAN payload
 };
 
-/​**​
+/**
  * GRE Base Header (4-16 bytes)
  * Minimal GRE encapsulation header
  */
@@ -37,7 +37,7 @@ header gre_header {
     bit<16> protocol;          // Payload protocol type (gre_protocol_type)
 };
 
-/​**​
+/**
  * GRE Optional Fields
  * Variable-length optional fields
  */
@@ -48,7 +48,7 @@ header gre_options {
     bit<32> sequence;        // Optional sequence number (if sequence_present set)
 };
 
-/​**​
+/**
  * GRE Transport Header (IP)
  * Outer IP header for GRE encapsulation
  */
@@ -59,18 +59,18 @@ header gre_transport {
     bit<16> identification;     // IP identification
     bit<16> flags_frag_offset;  // Flags + Fragment offset
     bit<8>  ttl;                // Time to live
-    bit<8>  protocol = 47;      // GRE protocol number
+    // bit<8>  protocol = 47;  // (pseudocode: field initializer removed)      // GRE protocol number
     bit<16> header_checksum;    // IP header checksum
     bit<32> src_ip;             // Source IP address (tunnel endpoint)
     bit<32> dst_ip;             // Destination IP address (tunnel endpoint)
 };
 
-/​**​
+/**
  * GRE Packet Structure:
  * [Outer Ethernet][Outer IP][GRE][Options][Payload]
  */
 
-/​**​
+/**
  * GRE Keepalive Header
  * Used for tunnel keepalive monitoring
  */
@@ -80,9 +80,10 @@ header gre_keepalive {
     bit<16> interval;       // Keepalive interval in seconds
 };
 
-/​**​
+/**
  * P4 Parser Logic for GRE
  */
+/*
 parser gre_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.outer_ethernet);
@@ -131,10 +132,12 @@ parser gre_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for payload types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for GRE
  */
+/*
 control gre_control(inout headers hdr) {
     action encapsulate_ip() {
         // Encapsulate IPv4 payload in GRE tunnel
@@ -183,3 +186,4 @@ control gre_control(inout headers hdr) {
         gre_processing.apply();
     }
 }
+*/

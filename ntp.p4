@@ -1,4 +1,4 @@
-/​**​
+/**
  * NTP Header Definition in P4
  * Network Time Protocol for clock synchronization
  * 
@@ -7,7 +7,7 @@
  */
 
 /* NTP Modes */
-enum ntp_mode {
+enum bit<8> ntp_mode {
     RESERVED          = 0,  // Reserved
     SYMMETRIC_ACTIVE  = 1,  // Symmetric active
     SYMMETRIC_PASSIVE = 2,  // Symmetric passive
@@ -19,7 +19,7 @@ enum ntp_mode {
 };
 
 /* NTP Leap Indicator */
-enum ntp_leap {
+enum bit<8> ntp_leap {
     NO_WARNING  = 0,         // No leap second warning
     LAST_MIN_61 = 1,         // Last minute has 61 seconds
     LAST_MIN_59 = 2,         // Last minute has 59 seconds
@@ -27,12 +27,12 @@ enum ntp_leap {
 };
 
 /* NTP Version Numbers */
-enum ntp_version {
+enum bit<8> ntp_version {
     NTPv3 = 3,        // NTP version 3
     NTPv4 = 4         // NTP version 4
 };
 
-/​**​
+/**
  * NTP Timestamp Format (64 bits)
  * NTP timestamp representation
  */
@@ -41,7 +41,7 @@ header ntp_timestamp {
     bit<32> fraction;  // Fractional seconds
 };
 
-/​**​
+/**
  * NTP Header (48 bytes)
  * Basic NTP message header
  */
@@ -55,54 +55,55 @@ header ntp_header {
     bit<32> root_delay;              // Roundtrip delay to reference clock
     bit<32> root_dispersion;         // Dispersion to reference clock
     bit<32> reference_id;            // Reference clock identifier
-    ntp_timestamp ref_timestamp;     // Reference timestamp
-    ntp_timestamp orig_timestamp;    // Originate timestamp
-    ntp_timestamp recv_timestamp;    // Receive timestamp
-    ntp_timestamp trans_timestamp;   // Transmit timestamp
+    // ntp_timestamp ref_timestamp;     // Reference timestamp  // (removed: nested header reference)
+    // ntp_timestamp orig_timestamp;    // Originate timestamp  // (removed: nested header reference)
+    // ntp_timestamp recv_timestamp;    // Receive timestamp  // (removed: nested header reference)
+    // ntp_timestamp trans_timestamp;   // Transmit timestamp  // (removed: nested header reference)
 };
 
-/​**​
+/**
  * NTP Extension Fields
  * Optional extension fields
  */
 header ntp_extension {
     bit<16> field_type;    // Extension field type
     bit<16> length;        // Length of extension
-    bit<8>  value[];       // Extension value (variable length)
+    varbit<1024> value;       // Extension value (variable length)
 };
 
-/​**​
+/**
  * NTP Authentication (20 bytes)
  * Optional authentication
  */
 header ntp_auth {
     bit<16> key_id;       // Key identifier
     bit<16> digest_len;   // Digest length
-    bit<8>  digest[];     // Message digest (variable length)
+    varbit<1024> digest;     // Message digest (variable length)
 };
 
-/​**​
+/**
  * NTP Kiss-o'-Death Codes
  * Special stratum 0 messages
  */
 header ntp_kod {
-    bit<8> code[4];       // ASCII KoD code
-    bit<8> message[];     // Optional message
+    bit<32> code;       // ASCII KoD code
+    varbit<1024> message;     // Optional message
 };
 
-/​**​
+/**
  * NTP Transport Header (UDP)
  */
 header ntp_transport {
     bit<16> source_port;      // Source port (typically ephemeral)
-    bit<16> dest_port = 123;  // Destination port (123)
+    // bit<16> dest_port = 123;  // (pseudocode: field initializer removed)  // Destination port (123)
     bit<16> length;           // UDP length
     bit<16> checksum;         // UDP checksum
 };
 
-/​**​
+/**
  * P4 Parser Logic for NTP
  */
+/*
 parser ntp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ntp_transport);
@@ -132,10 +133,12 @@ parser ntp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for NTP variants...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for NTP
  */
+/*
 control ntp_control(inout headers hdr) {
     action process_client_request() {
         // Process NTP client request
@@ -180,3 +183,4 @@ control ntp_control(inout headers hdr) {
         ntp_processing.apply();
     }
 }
+*/

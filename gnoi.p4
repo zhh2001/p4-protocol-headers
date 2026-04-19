@@ -1,4 +1,4 @@
-/​**​
+/**
  * gNOI Header Definition in P4
  * gNOI协议P4定义
  * 
@@ -7,7 +7,7 @@
  */
 
 /* gNOI Service Types */
-enum gnoi_service_type {
+enum bit<8> gnoi_service_type {
     OS_INSTALL = 0,     // 操作系统安装服务
     FILE       = 1,     // 文件管理服务
     SYSTEM     = 2,     // 系统服务
@@ -16,7 +16,7 @@ enum gnoi_service_type {
 }
 
 /* gNOI Operation Types */
-enum gnoi_operation {
+enum bit<8> gnoi_operation {
     INSTALL  = 0,     // 安装操作
     ACTIVATE = 1,     // 激活操作
     VERIFY   = 2,     // 验证操作
@@ -26,7 +26,7 @@ enum gnoi_operation {
     PUT      = 6      // 上传文件
 }
 
-/​**​
+/**
  * gNOI Message Header
  * gNOI消息头
  */
@@ -60,7 +60,7 @@ header gnoi_header {
     bit<32> payload_length;
 }
 
-/​**​
+/**
  * gNOI OS Install Service
  * gNOI操作系统安装服务
  */
@@ -94,7 +94,7 @@ header gnoi_os_install {
     bit<8> validate_only;
 }
 
-/​**​
+/**
  * gNOI File Service
  * gNOI文件服务
  */
@@ -134,7 +134,7 @@ header gnoi_file {
     bit<16> permissions;
 }
 
-/​**​
+/**
  * gNOI System Service
  * gNOI系统服务
  */
@@ -166,7 +166,7 @@ header gnoi_system {
     bit<16> subcomponent_count;
 }
 
-/​**​
+/**
  * gNOI Ping Service
  * gNOI网络诊断服务
  */
@@ -207,7 +207,7 @@ header gnoi_ping {
     bit<8> ttl;
 }
 
-/​**​
+/**
  * gNOI Certificate Management
  * gNOI证书管理
  */
@@ -247,7 +247,7 @@ header gnoi_cert_mgmt {
     bit<32> validity_days;
 }
 
-/​**​
+/**
  * gNOI Transport Header (over gRPC)
  * gNOI传输头(基于gRPC)
  */

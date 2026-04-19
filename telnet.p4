@@ -1,10 +1,10 @@
-/​**​
+/**
  * Telnet Header Definition in P4
  * Protocol for bidirectional interactive text communication
  */
 
 /* Telnet Command Codes */
-enum telnet_command {
+enum bit<8> telnet_command {
     SE   = 240,  // Subnegotiation End
     NOP  = 241,  // No Operation
     DM   = 242,  // Data Mark
@@ -23,14 +23,14 @@ enum telnet_command {
     IAC  = 255,  // Interpret As Command
 };
 
-/​**​
+/**
  * Telnet Header (8 bytes)
  */
 header telnet {
     bit<16> src_port;       // Client port (ephemeral)
-    bit<16> dst_port = 23;  // Telnet server port
+    // bit<16> dst_port = 23;  // (pseudocode: field initializer removed)  // Telnet server port
     bit<8>  command;        // Telnet command (telnet_command)
     bit<8>  option;         // Negotiation option
     bit<16> sub_len;        // Subnegotiation length
-    bit<8>  data[];         // Payload data
+    varbit<1024> data;         // Payload data
 };

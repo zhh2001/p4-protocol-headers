@@ -3,7 +3,7 @@
  * 流过滤与监管协议报头 - 实现粒度化流量控制与安全隔离            
  * Per-Stream Filtering and Policing Header                
  * Enables micro-segmentation and deterministic QoS        
- ​**********************************************************/
+ **********************************************************/
 
 header psfp_t {
     // ---- 流标识字段 ----
@@ -21,6 +21,7 @@ header psfp_t {
 }
 
 // Example: 令牌桶监管逻辑 (Pseudocode)
+/*
 action psfp_policing() {
     // 基于双色标记的令牌桶算法
     if (hdr.psfp.flow_type == 0) {  // 周期型流量
@@ -30,8 +31,10 @@ action psfp_policing() {
         }
     }
 }
+*/
 
 // Example: 动态流过滤机制 (Pseudocode)
+/*
 table dynamic_filtering {
     key = { 
         hdr.eth.src_addr : ternary; 
@@ -43,3 +46,4 @@ table dynamic_filtering {
         0x0/0x0 && 192.168.1.0/28 -> redirect_to_quarantine;  // 隔离可疑流量
     }
 }
+*/

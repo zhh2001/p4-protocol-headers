@@ -1,4 +1,4 @@
-/​**​
+/**
  * ICMPv6 Header Definition in P4
  * ICMPv6 报头 P4 定义
  */
@@ -41,7 +41,7 @@ header icmpv6_t {
                                 // ICMPv6 消息最大大小通常为 1232 字节
 }
 
-/​**​
+/**
  * ICMPv6 Neighbor Discovery Option Header
  * ICMPv6 邻居发现选项报头
  * Used in Neighbor Solicitation/Advertisement messages
@@ -73,7 +73,7 @@ header icmpv6_nd_option_t {
                          // 最大选项大小为 256 * 8 = 2048 位减去类型/长度的 2 字节
 }
 
-/​**​
+/**
  * ICMPv6 Echo Request/Reply Header
  * ICMPv6 回显请求/回复报头
  * Used in ping operations (Type 128=Request, 129=Reply)

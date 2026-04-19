@@ -1,4 +1,4 @@
-/​**​
+/**
  * Ethernet II Frame Header Definition in P4
  * Standard IEEE 802.3 frame format for local area networks
  * 
@@ -6,7 +6,7 @@
  */
 
 /* Ethernet Frame Types */
-enum ether_type {
+enum bit<16> ether_type {
     IPv4  = 0x0800,     // Internet Protocol v4
     IPv6  = 0x86DD,     // Internet Protocol v6
     ARP   = 0x0806,     // Address Resolution Protocol
@@ -15,7 +15,7 @@ enum ether_type {
     PPPoE = 0x8864      // PPP over Ethernet
 };
 
-/​**​
+/**
  * Ethernet II Header (14 bytes)
  * Standard frame header without 802.1Q tag
  */
@@ -25,7 +25,7 @@ header ethernet_header {
     bit<16> ether_type;  // Protocol type (ether_type)
 };
 
-/​**​
+/**
  * 802.1Q VLAN Tagging Header (4 bytes)
  * Optional VLAN tagging extension
  */
@@ -36,7 +36,7 @@ header dot1q_header {
     bit<16> ether_type;  // Protocol type (ether_type)
 };
 
-/​**​
+/**
  * Ethernet Frame Trailer (4 bytes)
  * Frame check sequence (CRC32)
  */
@@ -44,9 +44,10 @@ header ethernet_trailer {
     bit<32> fcs;   // Frame check sequence
 };
 
-/​**​
+/**
  * P4 Parser Logic for Ethernet
  */
+/*
 parser ethernet_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ethernet_header);
@@ -76,10 +77,12 @@ parser ethernet_parser(packet_in pkt, out headers hdr) {
         transition verify_fcs;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for Ethernet
  */
+/*
 control ethernet_control(inout headers hdr) {
     action forward_frame() {
         // Basic MAC forwarding logic
@@ -122,3 +125,4 @@ control ethernet_control(inout headers hdr) {
         mac_forwarding.apply();
     }
 }
+*/

@@ -1,4 +1,4 @@
-/​**​
+/**
  * DOSP Header Definition in P4
  * Digital Olfaction Streaming Protocol for scent data transmission
  * 
@@ -7,7 +7,7 @@
  */
 
 /* DOSP Scent Categories */
-enum dosp_scent_category {
+enum bit<8> dosp_scent_category {
     FRUITY   = 0x1,  // Citrus, berry, tropical
     FLORAL   = 0x2,  // Rose, lavender, jasmine
     EARTHY   = 0x4,  // Wood, moss, mushroom
@@ -15,7 +15,7 @@ enum dosp_scent_category {
 };
 
 /* DOSP Dispersion Methods */
-enum dosp_dispersion {
+enum bit<8> dosp_dispersion {
     DIFFUSION  = 0,  // Passive air diffusion
     AIRJET     = 1,  // Directed air vortex
     MICROENCAP = 2,  // Microencapsulated release
@@ -23,14 +23,14 @@ enum dosp_dispersion {
 };
 
 /* DOSP Concentration Levels */
-enum dosp_concentration {
+enum bit<8> dosp_concentration {
     TRACE      = 0,  // Barely perceptible
     SUBTLE     = 1,  // Background level
     NOTICEABLE = 2,  // Clearly detectable
     INTENSE    = 3,  // Strong presence
 };
 
-/​**​
+/**
  * DOSP Base Header (16 bytes)
  * Core scent transmission header
  */
@@ -46,7 +46,7 @@ header dosp_header {
     bit<8>  reserved;
 };
 
-/​**​
+/**
  * DOSP Chemical Signature (Variable length)
  * Molecular structure descriptor
  */
@@ -56,10 +56,10 @@ header dosp_chemical {
     bit<8>  polarity;           // 0-100 polarity scale
     bit<16> functional_groups;  // Chemical group flags
     bit<8>  safety_flags;       // Flammable/irritant/etc
-    bit<8>  structure[];        // Compressed molecular graph
+    varbit<1024> structure;        // Compressed molecular graph
 };
 
-/​**​
+/**
  * DOSP Environmental Context (12 bytes)
  * Ambient condition parameters
  */
@@ -72,7 +72,7 @@ header dosp_environment {
     bit<16> reserved;
 };
 
-/​**​
+/**
  * DOSP Device Control (8 bytes)
  * Scent dispenser actuation
  */
@@ -86,20 +86,21 @@ header dosp_actuation {
     bit<1>  purge;          // Chamber purge flag
 };
 
-/​**​
+/**
  * SMPTE ST 2110 Transport Header (8 bytes)
  * Professional media transport encapsulation
  */
 header smpte_transport {
     bit<16> src_port;          // Source UDP port
-    bit<16> dst_port = 49152;  // DOSP base port
+    // bit<16> dst_port = 49152;  // (pseudocode: field initializer removed)  // DOSP base port
     bit<16> ssrc;              // Synchronization source
     bit<16> seq_num;           // Packet sequence
 };
 
-/​**​
+/**
  * P4 Parser Logic for DOSP
  */
+/*
 parser dosp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.smpte_transport);
@@ -124,10 +125,12 @@ parser dosp_parser(packet_in pkt, out headers hdr) {
         transition adjust_dispersion;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for DOSP
  */
+/*
 control dosp_control(inout headers hdr) {
     action decode_molecule() {
         // Reconstruct chemical structure
@@ -187,3 +190,4 @@ control dosp_control(inout headers hdr) {
         dosp_processing.apply();
     }
 }
+*/

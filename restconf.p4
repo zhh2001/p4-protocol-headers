@@ -1,4 +1,4 @@
-/​**​
+/**
  * RESTCONF Header Definition in P4
  * RESTCONF协议P4定义
  * 
@@ -7,7 +7,7 @@
  */
 
 /* RESTCONF Methods */
-enum restconf_method {
+enum bit<8> restconf_method {
     OPTIONS = 0,    // 选项请求
     HEAD    = 1,    // 头部请求
     GET     = 2,    // 获取资源
@@ -18,13 +18,13 @@ enum restconf_method {
 }
 
 /* RESTCONF Data Formats */
-enum restconf_format {
+enum bit<8> restconf_format {
     XML  = 0,       // XML格式
     JSON = 1,       // JSON格式
     YANG = 2        // YANG格式
 }
 
-/​**​
+/**
  * RESTCONF Request Header
  * RESTCONF 请求头
  */
@@ -79,7 +79,7 @@ header restconf_request {
     bit<32> content_length;
 }
 
-/​**​
+/**
  * RESTCONF Response Header
  * RESTCONF 响应头
  */
@@ -134,7 +134,7 @@ header restconf_response {
     bit<32> content_length;
 }
 
-/​**​
+/**
  * RESTCONF Path Segment
  * RESTCONF路径段
  */
@@ -161,7 +161,7 @@ header restconf_path_segment {
     bit<16> key_count;
 }
 
-/​**​
+/**
  * RESTCONF Key-Value Pair
  * RESTCONF键值对
  */
@@ -181,7 +181,7 @@ header restconf_key_value {
     bit<16> value_length;
 }
 
-/​**​
+/**
  * RESTCONF Error
  * RESTCONF错误
  */
@@ -221,7 +221,7 @@ header restconf_error {
     bit<16> error_message_length;
 }
 
-/​**​
+/**
  * RESTCONF Transport Header (over HTTP)
  * RESTCONF传输头(基于HTTP)
  */

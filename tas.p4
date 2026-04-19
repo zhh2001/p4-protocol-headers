@@ -3,7 +3,7 @@
  * 时间感知整形协议报头 - 用于 TSN 网络的时间敏感调度            
  * Time-Aware Shaper Header                                
  * Enables deterministic latency for time-sensitive traffic
- ​**********************************************************/
+ **********************************************************/
 
 header tas_t {
     // ---- 基础控制字段 (4 字节) ----

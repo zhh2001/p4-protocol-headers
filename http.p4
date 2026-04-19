@@ -1,4 +1,4 @@
-/​**​
+/**
  * HTTP/1.1 Header Definition in P4
  * Hypertext Transfer Protocol version 1.1
  * 
@@ -7,7 +7,7 @@
  */
 
 /* HTTP/1.1 Methods */
-enum http_method {
+enum bit<8> http_method {
     GET     = 0,
     POST    = 1,
     PUT     = 2,
@@ -20,51 +20,51 @@ enum http_method {
 };
 
 /* HTTP/1.1 Connection Flags */
-enum http_connection_flags {
+enum bit<8> http_connection_flags {
     CONN_CLOSE = 0x1,      // Connection: close
     CONN_KEEPALIVE = 0x2,  // Connection: keep-alive
     CHUNKED = 0x4          // Transfer-Encoding: chunked
 };
 
-/​**​
+/**
  * HTTP/1.1 Request Line (Variable length)
  * Start line for HTTP requests
  */
 header http_request_line {
     bit<8> method;       // Request method (http_method)
-    bit<8> uri[];        // Request URI (variable length)
-    bit<8> version[];    // HTTP version (e.g. "HTTP/1.1")
+    varbit<1024> uri;        // Request URI (variable length)
+    varbit<1024> version;    // HTTP version (e.g. "HTTP/1.1")
 };
 
-/​**​
+/**
  * HTTP/1.1 Status Line (Variable length)
  * Start line for HTTP responses
  */
 header http_status_line {
-    bit<8>  version[];    // HTTP version
+    varbit<1024> version;    // HTTP version
     bit<16> status_code;  // Status code (200, 404, etc.)
-    bit<8>  reason[];     // Status text
+    varbit<1024> reason;     // Status text
 };
 
-/​**​
+/**
  * HTTP/1.1 Header Field (Variable length)
  * Single header key-value pair
  */
 header http_header_field {
-    bit<8> name[];     // Header name
-    bit<8> value[];    // Header value
+    varbit<1024> name;     // Header name
+    varbit<1024> value;    // Header value
 };
 
-/​**​
+/**
  * HTTP/1.1 Chunk Header (Variable length)
  * Chunked transfer encoding metadata
  */
 header http_chunk_header {
     bit<32> chunk_size;  // Chunk size in hex
-    bit<8> ext[];        // Optional chunk extensions
+    varbit<1024> ext;        // Optional chunk extensions
 };
 
-/​**​
+/**
  * TCP Transport Header (20 bytes)
  * Standard TCP header for HTTP/1.1
  */
@@ -81,9 +81,10 @@ header tcp_transport {
     bit<16> urgent_ptr;   // Urgent pointer
 };
 
-/​**​
+/**
  * P4 Parser Logic for HTTP/1.1
  */
+/*
 parser http11_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.tcp_transport);
@@ -118,10 +119,12 @@ parser http11_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for headers and body...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for HTTP/1.1
  */
+/*
 control http11_control(inout headers hdr) {
     action process_request() {
         // Route based on HTTP method and URI
@@ -175,3 +178,4 @@ control http11_control(inout headers hdr) {
         http11_processing.apply();
     }
 }
+*/

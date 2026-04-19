@@ -64,17 +64,22 @@ const msg_type_t CAPWAP_KEEPALIVE = 8w0x4;  // 保活检测
 
 
 // 关键特性说明：
-//     1. ​双通道架构：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+//     1. 双通道架构：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action route_control_packet() {
     capwap_t.dtls_bit = 1w1;  // 控制通道启用 DTLS
     capwap_t.msg_type = CAPWAP_JOIN;
 }
+*/
 //     2. 无线帧封装：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action encapsulate_80211_frame() {
     capwap_data_t.data_type = 8w1;  // 802.11 帧
     capwap_data_t.timestamp = now();
 }
-//     3. ​AP管理功能：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+*/
+//     3. AP管理功能：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 table ap_configuration {
     key = {
         radio_mac: exact;
@@ -86,22 +91,27 @@ table ap_configuration {
     }
     size = 1024;
 }
+*/
 
 
 // 典型工作流程：
 //     1. AP发现阶段：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action send_discovery() {
     capwap_t.msg_type = CAPWAP_DISCOVERY;
     capwap_t.seq_num = random();
 }
+*/
 //     2. DTLS 隧道建立：
 //         - 完成双向证书认证
 //         - 协商加密参数（AES-CCM 等）
 //     3. 配置同步：
+/*
 action push_config() {
     capwap_t.msg_type = CAPWAP_CONFIG;
     capwap_t.payload = {wlan_config, security_policy};
 }
+*/
 //     4. 数据转发：
 //         - 控制器集中转发跨 AP 流量
 //         - 本地转发模式可绕过控制器

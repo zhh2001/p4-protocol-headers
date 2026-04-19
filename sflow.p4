@@ -1,4 +1,4 @@
-/​**​
+/**
  * sFlow Header Definition in P4
  * sFlow 协议 P4 定义
  * 
@@ -7,11 +7,11 @@
  */
 
 /* sFlow Version */
-enum sflow_version {
+enum bit<8> sflow_version {
     V5 = 5  // Current version is 5
 }
 
-/​**​
+/**
  * sFlow Datagram Header (20 bytes)
  * sFlow 数据报头(20 字节)
  */
@@ -59,7 +59,7 @@ header sflow_datagram_header {
     bit<32> sample_count;
 }
 
-/​**​
+/**
  * sFlow Sample Header (8 bytes)
  * sFlow 样本头(8 字节)
  */
@@ -79,7 +79,7 @@ header sflow_sample_header {
     bit<32> sample_length;
 }
 
-/​**​
+/**
  * sFlow Flow Sample Record (variable length)
  * sFlow 流样本记录(可变长度)
  */
@@ -148,7 +148,7 @@ header sflow_flow_sample {
     bit<32> record_count;
 }
 
-/​**​
+/**
  * sFlow Flow Record (variable length)
  * sFlow 流记录(可变长度)
  */
@@ -168,7 +168,7 @@ header sflow_flow_record {
     bit<32> flow_data_length;
 }
 
-/​**​
+/**
  * sFlow Raw Packet Header (variable length)
  * sFlow 原始数据包头(可变长度)
  */
@@ -209,7 +209,7 @@ header sflow_raw_packet_header {
     varbit<1024> header_bytes;
 }
 
-/​**​
+/**
  * sFlow Counter Sample Record (variable length)
  * sFlow 计数器样本记录(可变长度)
  */
@@ -243,7 +243,7 @@ header sflow_counter_sample {
     bit<32> record_count;
 }
 
-/​**​
+/**
  * sFlow Counter Record (variable length)
  * sFlow 计数器记录(可变长度)
  */
@@ -263,7 +263,7 @@ header sflow_counter_record {
     bit<32> counter_data_length;
 }
 
-/​**​
+/**
  * sFlow Interface Counters (36 bytes)
  * sFlow 接口计数器(36 字节)
  */
@@ -346,7 +346,7 @@ header sflow_if_counters {
     bit<32> if_out_errors;
 }
 
-/​**​
+/**
  * sFlow Transport Header (typically over UDP)
  * sFlow 传输头(通常基于 UDP)
  */

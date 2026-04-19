@@ -1,17 +1,17 @@
-/​**​
+/**
  * NetBIOS Header Definition in P4
  * Network Basic Input/Output System
  * 网络基本输入输出系统
  */
 
 /* NetBIOS Name Types */
-enum netbios_name {
+enum bit<8> netbios_name {
     WORKSTATION    = 0x00,
     DOMAIN         = 0x1C,
     MASTER_BROWSER = 0x1D,
 };
 
-/​**​
+/**
  * NetBIOS Header (8 bytes)
  */
 header netbios {

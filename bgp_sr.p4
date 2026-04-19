@@ -1,6 +1,6 @@
 typedef bit<24> segment_flag_t;
 
-// BGP-SR (BGP Segment Routing Extensions)​​  实现跨域 SR 策略分发的关键协议
+// BGP-SR (BGP Segment Routing Extensions)  实现跨域 SR 策略分发的关键协议
 header bgp_sr_t {
     // BGP 路径属性头部 (RFC 4271)
     bit<2>   flags;            // 可选/传递/部分标志
@@ -38,11 +38,13 @@ const segment_flag_t SR_SEG_PROTECTED = 24w0x000002;  // 保护路径
 
 
 // Example: 跨域策略分发 (Pseudocode)
+/*
 action advertise_sr_policy() {
     bgp_sr_t.policy_type = 16w1;  // 候选路径
     bgp_sr_t.segment_type = 8w1;  // 节点 SID
     bgp_sr_t.segments = {16001, 16005};
 }
+*/
 
 // Example: 业务链编程 (Pseudocode)
 header bgp_sr_service_t {
@@ -51,7 +53,8 @@ header bgp_sr_service_t {
     bit<128> service_sid;  // 服务链 SID
 }
 
-// Example: 路径优化​​ (Pseudocode)
+// Example: 路径优化 (Pseudocode)
+/*
 table sr_policy_selection {
     key = {
         bgp_sr_t.color: exact;
@@ -63,10 +66,13 @@ table sr_policy_selection {
     }
     size = 100000;
 }
+*/
 
 
 // 与 PCEP-SR 的协同：(Pseudocode)
+/*
 action import_pcep_path() {
     bgp_sr_t.segments = pcep_sr_t.sid_list;
     bgp_sr_t.policy_type = 16w2;  // 标记为 PCEP 计算路径
 }
+*/

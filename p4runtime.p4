@@ -1,4 +1,4 @@
-/​**​
+/**
  * P4Runtime Header Definition in P4
  * P4Runtime 协议 P4 定义
  * 
@@ -7,14 +7,14 @@
  */
 
 /* P4Runtime Service Types */
-enum p4_service_type {
+enum bit<8> p4_service_type {
     P4RUNTIME   = 0,       // Main P4Runtime service
     CONFIG_MGMT = 1,       // Configuration management
     DEVICE_MGMT = 2,       // Device management
     PACKET_IO   = 3        // Packet in/out service
 }
 
-/​**​
+/**
  * P4Runtime Message Header
  * P4Runtime消息头
  */
@@ -69,7 +69,7 @@ header p4runtime_header {
     bit<128> election_id;
 }
 
-/​**​
+/**
  * P4Runtime Write Request
  * P4Runtime写请求
  */
@@ -89,7 +89,7 @@ header p4runtime_write_request {
     bit<32> update_count;
 }
 
-/​**​
+/**
  * P4Runtime Table Update
  * P4Runtime 表更新
  */
@@ -130,7 +130,7 @@ header p4runtime_table_update {
     bit<32> action_data_length;
 }
 
-/​**​
+/**
  * P4Runtime Packet Metadata
  * P4Runtime数据包元数据
  */
@@ -150,7 +150,7 @@ header p4runtime_packet_metadata {
     bit<32> value_length;
 }
 
-/​**​
+/**
  * P4Runtime Packet-In Header
  * P4Runtime 数据包输入头
  */
@@ -170,7 +170,7 @@ header p4runtime_packet_in {
     bit<32> metadata_count;
 }
 
-/​**​
+/**
  * P4Runtime Packet-Out Header
  * P4Runtime 数据包输出头
  */
@@ -190,7 +190,7 @@ header p4runtime_packet_out {
     bit<32> metadata_count;
 }
 
-/​**​
+/**
  * P4Runtime Stream Message
  * P4Runtime 流式消息
  */
@@ -210,7 +210,7 @@ header p4runtime_stream_message {
     bit<32> payload_length;
 }
 
-/​**​
+/**
  * P4Runtime Transport Header (over gRPC)
  * P4Runtime 传输头(基于 gRPC)
  */

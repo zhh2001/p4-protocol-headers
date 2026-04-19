@@ -1,4 +1,4 @@
-/​**​
+/**
  * INT Header Definition in P4
  * 带内网络遥测(INT)协议P4定义
  * 
@@ -7,14 +7,14 @@
  */
 
 /* INT Instruction Types */
-enum int_instruction_type {
+enum bit<8> int_instruction_type {
     INT_INSTR_0 = 0,    // 保留指令
     INT_INSTR_1 = 1,    // 交换级元数据采集
     INT_INSTR_2 = 2,    // 流量级元数据采集
     INT_INSTR_3 = 3     // 自定义元数据采集
 }
 
-/​**​
+/**
  * INT Shim Header (4 bytes)
  * INT Shim头(4字节)
  */
@@ -62,7 +62,7 @@ header int_shim_header {
     bit<8> next_protocol;
 }
 
-/​**​
+/**
  * INT Metadata Header (8 bytes)
  * INT元数据头(8字节)
  */
@@ -103,7 +103,7 @@ header int_metadata_header {
     bit<16> domain_id;
 }
 
-/​**​
+/**
  * INT Switch Metadata (8 bytes per hop)
  * INT交换机元数据(每跳8字节)
  */
@@ -172,7 +172,7 @@ header int_switch_metadata {
     bit<8> reserved;
 }
 
-/​**​
+/**
  * INT Flow Metadata (16 bytes)
  * INT流元数据(16字节)
  */
@@ -248,7 +248,7 @@ header int_flow_metadata {
     bit<1> reserved;
 }
 
-/​**​
+/**
  * INT Report Header (20 bytes)
  * INT报告头(20字节)
  */
@@ -310,7 +310,7 @@ header int_report_header {
     bit<16> reserved2;
 }
 
-/​**​
+/**
  * INT Transport Header (UDP)
  * INT传输头(UDP)
  */

@@ -1,4 +1,4 @@
-/​**​
+/**
  * AI-Lossless Header Definition in P4
  * Artificial Intelligence driven lossless network protocol for data center environments
  * 
@@ -7,7 +7,7 @@
  */
 
 /* AI-Lossless Operation Modes */
-enum ail_mode {
+enum bit<8> ail_mode {
     PROACTIVE_CC = 0x1,    // AI proactive congestion control
     REACTIVE_CC = 0x2,     // AI reactive congestion control
     FLOW_PACING = 0x4,     // Intelligent flow pacing
@@ -15,14 +15,14 @@ enum ail_mode {
 };
 
 /* AI-Lossless Feedback Types */
-enum ail_feedback {
+enum bit<8> ail_feedback {
     QUEUE_DEPTH = 0x1,     // Switch queue depth
     LINK_UTIL = 0x2,       // Link utilization
     FLOW_RATE = 0x4,       // Per-flow rate measurement
     ECN_MARK = 0x8         // ECN marking percentage
 };
 
-/​**​
+/**
  * AI-Lossless Base Header (12 bytes)
  * Core header for AI-driven lossless networking
  */
@@ -36,7 +36,7 @@ header ail_header {
     bit<8>  reserved;
 };
 
-/​**​
+/**
  * AI-Lossless Congestion Control (16 bytes)
  * AI-optimized congestion control parameters
  */
@@ -47,7 +47,7 @@ header ail_cc {
     bit<32> rtt_estimate;  // AI-estimated RTT (μs)
 };
 
-/​**​
+/**
  * AI-Lossless Flow Scheduling (8 bytes)
  * Intelligent flow scheduling parameters
  */
@@ -58,23 +58,23 @@ header ail_sched {
     bit<16> deadline;      // Completion deadline (ms)
 };
 
-/​**​
+/**
  * AI-Lossless Feedback (Variable length)
  * Real-time network feedback data
  */
-header ail_feedback {
+header ail_feedback_t {
     bit<32> switch_id;     // Feedback source identifier
     bit<32> timestamp;     // Feedback generation time
-    bit<8>  data[];        // Feedback metrics (variable)
+    varbit<1024> data;        // Feedback metrics (variable)
 };
 
-/​**​
+/**
  * AI-Lossless Transport Header (RoCEv2)
  * RDMA over Converged Ethernet encapsulation
  */
 header ail_transport {
     bit<16> src_port;          // Source UDP port
-    bit<16> dst_port = 4791;   // RoCEv2 destination port
+    // bit<16> dst_port = 4791;  // (pseudocode: field initializer removed)   // RoCEv2 destination port
     bit<16> length;            // UDP length
     bit<16> checksum;          // UDP checksum
     bit<8>  dscp;              // Differentiated Services Code Point
@@ -82,9 +82,10 @@ header ail_transport {
     bit<16> reserved;
 };
 
-/​**​
+/**
  * P4 Parser Logic for AI-Lossless
  */
+/*
 parser ail_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ail_transport);
@@ -106,10 +107,12 @@ parser ail_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for other header types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for AI-Lossless
  */
+/*
 control ail_control(inout headers hdr) {
     action apply_ai_cc() {
         // Apply AI-calculated congestion control
@@ -157,3 +160,4 @@ control ail_control(inout headers hdr) {
         ail_processing.apply();
     }
 }
+*/

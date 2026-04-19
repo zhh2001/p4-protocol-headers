@@ -1,4 +1,4 @@
-/​**​
+/**
  * ARP Header Definition in P4
  * Address Resolution Protocol for mapping IP addresses to MAC addresses
  * 
@@ -7,7 +7,7 @@
  */
 
 /* ARP Operation Codes */
-enum arp_opcode {
+enum bit<8> arp_opcode {
     ARP_REQUEST  = 1,      // Request target MAC address
     ARP_REPLY    = 2,      // Response with MAC address
     RARP_REQUEST = 3,      // Reverse ARP request
@@ -15,7 +15,7 @@ enum arp_opcode {
 };
 
 /* Hardware Types */
-enum arp_hardware_type {
+enum bit<8> arp_hardware_type {
     ETHERNET      = 1,        // Ethernet (10Mb)
     IEEE802       = 6,        // IEEE 802 networks
     ARCNET        = 7,        // ARCNET
@@ -26,13 +26,13 @@ enum arp_hardware_type {
 };
 
 /* Protocol Types */
-enum arp_protocol_type {
+enum bit<16> arp_protocol_type {
     IPV4 = 0x0800,      // Internet Protocol v4
     IPV6 = 0x86DD,      // Internet Protocol v6
     MPLS = 0x8847       // MPLS
 };
 
-/​**​
+/**
  * ARP Packet Header (28 bytes for IPv4 over Ethernet)
  * Standard ARP request/reply format
  */
@@ -48,7 +48,7 @@ header arp_header {
     bit<32> target_proto_addr;  // Target protocol address
 };
 
-/​**​
+/**
  * Gratuitous ARP Extension
  * Special ARP used for duplicate IP detection and updates
  */
@@ -58,7 +58,7 @@ header gratuitous_arp {
     bit<32> update_interval;  // Cache update interval in seconds
 };
 
-/​**​
+/**
  * Proxy ARP Extension
  * Used when devices answer ARP requests on behalf of others
  */
@@ -68,19 +68,20 @@ header proxy_arp {
     bit<32> original_sender;   // Original sender IP (for validation)
 };
 
-/​**​
+/**
  * ARP Transport Header (Ethernet)
  * Ethernet frame format for ARP packets
  */
 header arp_transport {
     bit<48> dst_mac;            // Destination MAC (FF:FF:FF:FF:FF:FF for request)
     bit<48> src_mac;            // Source MAC address
-    bit<16> eth_type = 0x0806;  // ARP protocol type
+    // bit<16> eth_type = 0x0806;  // (pseudocode: field initializer removed)  // ARP protocol type
 };
 
-/​**​
+/**
  * P4 Parser Logic for ARP
  */
+/*
 parser arp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.arp_transport);
@@ -105,10 +106,12 @@ parser arp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for other ARP variants...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for ARP
  */
+/*
 control arp_control(inout headers hdr) {
     action generate_arp_reply() {
         // Generate ARP reply from request
@@ -165,3 +168,4 @@ control arp_control(inout headers hdr) {
         arp_processing.apply();
     }
 }
+*/

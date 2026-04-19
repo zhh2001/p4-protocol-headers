@@ -1,4 +1,4 @@
-/​**​
+/**
  * Model-Driven Telemetry Header Definition in P4
  * 模型驱动遥测协议P4定义
  * 
@@ -7,7 +7,7 @@
  */
 
 /* 遥测数据编码类型 */
-enum telemetry_encoding {
+enum bit<8> telemetry_encoding {
     ENCODING_JSON   = 0,    // JSON 格式
     ENCODING_GPB    = 1,    // Protocol Buffers 格式
     ENCODING_XML    = 2,    // XML 格式
@@ -15,14 +15,14 @@ enum telemetry_encoding {
 }
 
 /* 遥测采集模式 */
-enum collection_mode {
+enum bit<8> collection_mode {
     STREAM   = 0,          // 持续流式采集
     ONCE     = 1,          // 单次采集
     PERIODIC = 2,          // 周期性采集
     EVENT    = 3           // 事件触发采集
 }
 
-/​**​
+/**
  * 遥测消息头 (12字节)
  */
 header telemetry_header {
@@ -79,7 +79,7 @@ header telemetry_header {
     bit<32> payload_length;
 }
 
-/​**​
+/**
  * 传感器路径头
  */
 header sensor_path {
@@ -95,7 +95,7 @@ header sensor_path {
     bit<16> filter_len;
 }
 
-/​**​
+/**
  * 数据样本头
  */
 header data_sample {
@@ -115,7 +115,7 @@ header data_sample {
     bit<16> error_code;
 }
 
-/​**​
+/**
  * 控制消息头
  */
 header control_message {
@@ -145,7 +145,7 @@ header control_message {
     bit<32> heartbeat_interval;
 }
 
-/​**​
+/**
  * 确认消息头
  */
 header ack_message {
@@ -163,7 +163,7 @@ header ack_message {
     bit<32> processed_sequence;
 }
 
-/​**​
+/**
  * 遥测传输头 (基于UDP)
  */
 header telemetry_transport {
@@ -187,7 +187,7 @@ header telemetry_transport {
     bit<32> stream_id;
 }
 
-/​**​
+/**
  * 遥测扩展头 (可选)
  */
 header telemetry_extension {
@@ -201,7 +201,7 @@ header telemetry_extension {
     bit<8> ext_flags;
 }
 
-/​**​
+/**
  * 数据字段描述头
  */
 header data_field {
@@ -219,7 +219,7 @@ header data_field {
     bit<16> field_len;
 }
 
-/​**​
+/**
  * 事件触发条件头
  */
 header trigger_condition {

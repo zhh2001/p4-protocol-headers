@@ -1,10 +1,10 @@
-/​**​
+/**
  * PTP (IEEE 1588) Header Definition in P4
  * Precision time protocol for clock synchronization
  */
 
 /* PTP Message Types */
-enum ptp_message_type {
+enum bit<8> ptp_message_type {
     SYNC                  = 0x0,
     DELAY_REQ             = 0x1,
     PDELAY_REQ            = 0x2,
@@ -18,7 +18,7 @@ enum ptp_message_type {
 }
 
 /* PTP Transport Types */
-enum ptp_transport {
+enum bit<8> ptp_transport {
     UDP_IPv4   = 0x1,
     UDP_IPv6   = 0x2,
     IEEE_802_3 = 0x3,
@@ -27,7 +27,7 @@ enum ptp_transport {
     PROFINET   = 0x6
 }
 
-/​**​
+/**
  * PTP Common Header (34 bytes)
  */
 header ptp_header {
@@ -47,7 +47,7 @@ header ptp_header {
     bit<8>  logMessageInterval;   // Logarithm of message period
 }
 
-/​**​
+/**
  * PTP Sync Message (Follow_Up has same structure)
  */
 header ptp_sync {
@@ -55,7 +55,7 @@ header ptp_sync {
     bit<16> reserved;
 }
 
-/​**​
+/**
  * PTP Delay_Req Message
  */
 header ptp_delay_req {
@@ -63,7 +63,7 @@ header ptp_delay_req {
     bit<16> reserved;
 }
 
-/​**​
+/**
  * PTP Delay_Resp Message
  */
 header ptp_delay_resp {
@@ -72,7 +72,7 @@ header ptp_delay_resp {
     bit<16> reserved;
 }
 
-/​**​
+/**
  * PTP Announce Message
  */
 header ptp_announce {
@@ -86,7 +86,7 @@ header ptp_announce {
     bit<8>  timeSource;
 }
 
-/​**​
+/**
  * PTP Signaling Message
  */
 header ptp_signaling {
@@ -95,7 +95,7 @@ header ptp_signaling {
     bit<16> reserved;
 }
 
-/​**​
+/**
  * PTP Management Message
  */
 header ptp_management {
@@ -108,7 +108,7 @@ header ptp_management {
     bit<16> reserved2;
 }
 
-/​**​
+/**
  * PTP TLV Header
  */
 header ptp_tlv {
@@ -116,10 +116,10 @@ header ptp_tlv {
     bit<16> length;           // Length of value field
 }
 
-/​**​
+/**
  * PTP Transport Header (UDP/IPv4)
  */
-header ptp_transport {
+header ptp_transport_t {
     bit<16> sourcePort;       // Typically 319 for event messages
     bit<16> destPort;         // Typically 319 for event messages
     bit<16> length;           // UDP length
@@ -128,7 +128,7 @@ header ptp_transport {
     bit<32> destIP;           // IPv4 destination address
 }
 
-/​**​
+/**
  * PTP Clock Quality
  */
 header ptp_clock_quality {
@@ -137,9 +137,10 @@ header ptp_clock_quality {
     bit<16> offsetScaledLogVariance;  // Clock stability metric
 }
 
-/​**​
+/**
  * P4 Parser Logic for PTP
  */
+/*
 parser ptp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ptp_transport);
@@ -163,8 +164,9 @@ parser ptp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for each message type...
 }
+*/
 
-/​**​
+/**
  * PTP Timestamp Format
  */
 header ptp_timestamp {
@@ -173,48 +175,48 @@ header ptp_timestamp {
     bit<16> fractional_ns;    // Fractional nanoseconds
 }
 
-/​**​
+/**
  * PTP Path Trace TLV
  */
 header ptp_path_trace {
-    bit<16> tlvType = 0x0008;  // Path trace TLV type
+    // bit<16> tlvType = 0x0008;  // (pseudocode: field initializer removed)  // Path trace TLV type
     bit<16> length;            // Length of path trace
-    bit<8>  pathSequence[16];  // Sequence of clock IDs
+    bit<128> pathSequence;  // Sequence of clock IDs
 }
 
-/​**​
+/**
  * PTP Clock Description TLV
  */
 header ptp_clock_description {
-    bit<16> tlvType = 0x0009;
+    // bit<16> tlvType = 0x0009;  // (pseudocode: field initializer removed)
     bit<16> length;
     bit<80> clockIdentity;
     bit<8>  physicalLayerProtocol;
-    bit<8>  physicalAddress[6];
-    bit<8>  protocolAddress[4];
-    bit<8>  manufacturerIdentity[3];
-    bit<8>  productDescription[20];
-    bit<8>  revisionDescription[20];
-    bit<8>  userDescription[20];
+    bit<48> physicalAddress;
+    bit<32> protocolAddress;
+    bit<24> manufacturerIdentity;
+    bit<160> productDescription;
+    bit<160> revisionDescription;
+    bit<160> userDescription;
 }
 
-/​**​
+/**
  * PTP Security TLV
  */
 header ptp_security {
-    bit<16> tlvType = 0x000D;
+    // bit<16> tlvType = 0x000D;  // (pseudocode: field initializer removed)
     bit<16> length;
     bit<8>  securityModel;
-    bit<8>  keyIdentifier[32];
+    bit<256> keyIdentifier;
     bit<8>  securityOptions;
-    bit<8>  cryptographicValue[16];
+    bit<128> cryptographicValue;
 }
 
-/​**​
+/**
  * PTP Port Statistics TLV
  */
 header ptp_port_stats {
-    bit<16> tlvType = 0x000E;
+    // bit<16> tlvType = 0x000E;  // (pseudocode: field initializer removed)
     bit<16> length;
     bit<64> rxMsgCount;
     bit<64> txMsgCount;
@@ -224,9 +226,10 @@ header ptp_port_stats {
     bit<64> txDiscardCount;
 }
 
-/​**​
+/**
  * P4 Match-Action Pipeline for PTP
  */
+/*
 control ptp_control(inout headers hdr) {
     action handle_sync() {
         // Process SYNC message
@@ -255,3 +258,4 @@ control ptp_control(inout headers hdr) {
         ptp_message_handling.apply();
     }
 }
+*/

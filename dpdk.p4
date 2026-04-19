@@ -1,4 +1,4 @@
-/​**​
+/**
  * DPDK Acceleration Header Definition in P4
  * Data Plane Development Kit acceleration protocol for high-performance packet processing
  * 
@@ -7,7 +7,7 @@
  */
 
 /* DPDK Acceleration Modes */
-enum dpdk_accel_mode {
+enum bit<8> dpdk_accel_mode {
     NORMAL         = 0,  // Standard processing path
     ZERO_COPY      = 1,  // Zero-copy buffer mode
     BATCHED        = 2,  // Batched processing mode 
@@ -16,7 +16,7 @@ enum dpdk_accel_mode {
 };
 
 /* DPDK Buffer Types */
-enum dpdk_buffer_type {
+enum bit<8> dpdk_buffer_type {
     CONTIGUOUS = 0,      // Single contiguous buffer
     SCATTER_GATHER = 1,  // Scatter-gather list
     CHAINED = 2,         // Chained buffer segments
@@ -24,7 +24,7 @@ enum dpdk_buffer_type {
 };
 
 /* DPDK Offload Flags */
-enum dpdk_offload_flags {
+enum bit<8> dpdk_offload_flags {
     CHECKSUM_OFFLOAD = 0x1,    // Checksum computation
     TSO_OFFLOAD = 0x2,        // TCP segmentation offload
     CRYPTO_OFFLOAD = 0x4,     // Encryption/decryption
@@ -32,7 +32,7 @@ enum dpdk_offload_flags {
     QOS_OFFLOAD = 0x10        // Quality of Service marking
 };
 
-/​**​
+/**
  * DPDK Acceleration Header (16 bytes)
  * Metadata header for DPDK-accelerated packets
  */
@@ -48,7 +48,7 @@ header dpdk_accel {
     bit<16> reserved;       // Reserved for alignment
 };
 
-/​**​
+/**
  * DPDK Segment Descriptor (8 bytes per segment)
  * Scatter-gather buffer segment information
  */
@@ -58,7 +58,7 @@ header dpdk_segment {
     bit<16> seg_flags;     // Segment flags
 };
 
-/​**​
+/**
  * DPDK Batch Header (8 bytes)
  * Batched processing metadata
  */
@@ -68,7 +68,7 @@ header dpdk_batch {
     bit<32> batch_flags;   // Batch processing flags
 };
 
-/​**​
+/**
  * DPDK Crypto Context (32 bytes)
  * Cryptographic offload parameters
  */
@@ -80,12 +80,13 @@ header dpdk_crypto {
     bit<64> cipher_key;     // Cipher key (or pointer)
     bit<64> auth_key;       // Authentication key (or pointer)
     bit<32> iv_len;         // Initialization vector length
-    bit<8>  iv[];           // Initialization vector
+    varbit<1024> iv;           // Initialization vector
 };
 
-/​**​
+/**
  * P4 Parser Logic for DPDK Acceleration
  */
+/*
 parser dpdk_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.dpdk_accel);
@@ -111,10 +112,12 @@ parser dpdk_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for other acceleration modes...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for DPDK Acceleration
  */
+/*
 control dpdk_control(inout headers hdr) {
     action process_zero_copy() {
         // Map zero-copy buffers to virtual addresses
@@ -165,3 +168,4 @@ control dpdk_control(inout headers hdr) {
         dpdk_processing.apply();
     }
 }
+*/

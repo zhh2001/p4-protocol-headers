@@ -29,7 +29,7 @@ header msdp_t {
 
     // 源活跃数据 (可变长度) - SA 条目列表
     // SA data (variable) - List of SA entries
-    msdp_sa_entry_t[16] sa_entries;
+    // msdp_sa_entry_t[16] sa_entries;  // (removed: nested header reference)
 }
 
 header msdp_sa_entry_t {
@@ -61,11 +61,14 @@ const bit<8> MSDP_STATE_SA_FILTERED = 8w0x02;  // 被 SA 过滤器拦截
 
 // 关键特性说明：
 //     1. 域间源发现：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action create_sa_message() {
     msdp_t.msg_type = 4w1;  // SA 类型
     msdp_sa_entry.ttl = 16w210;  // 默认生存时间
 }
+*/
 //     2. RPF 检查机制：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 table msdp_rpf_check {
     key = {
         rp_address: exact;
@@ -76,10 +79,13 @@ table msdp_rpf_check {
     }
     size = 1024;
 }
+*/
 //     3. Anycast RP 支持：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action handle_anycast_rp() {
     msdp_sa_entry.rp_address = 32w0x0A010101; // Anycast RP 地址
 }
+*/
 
 
 // 典型工作流程：
@@ -87,10 +93,12 @@ action handle_anycast_rp() {
 //         - 第一跳 RP 检测到新组播源
 //         - 生成 SA 消息发送给所有 MSDP 对等体
 //     2. 域间传播：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action forward_sa() {
     msdp_t.entry_count = msdp_t.entry_count + 16w1;
     msdp_sa_entry.ttl = msdp_sa_entry.ttl - 16w1;  // 递减 TTL
 }
+*/
 //     3. 接收处理：
 //         - 接收 RP 检查 SA 有效性
 //         - 向源发起 PIM Join 建立 SPT

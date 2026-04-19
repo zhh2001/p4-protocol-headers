@@ -1,4 +1,4 @@
-/​**​
+/**
  * SSAP Header Definition in P4
  * Space Situational Awareness Protocol for orbital object tracking and collision avoidance
  * 
@@ -7,7 +7,7 @@
  */
 
 /* SSAP Object Classification */
-enum ssap_obj_class {
+enum bit<8> ssap_obj_class {
     DEBRIS      = 0,  // Space debris fragment
     ACTIVE_SAT  = 1,  // Operational satellite
     ROCKET_BODY = 2,  // Spent launch vehicle
@@ -15,7 +15,7 @@ enum ssap_obj_class {
 };
 
 /* SSAP Data Reliability */
-enum ssap_data_quality {
+enum bit<8> ssap_data_quality {
     RADAR    = 0,  // Ground-based radar tracking
     OPTICAL  = 1,  // Telescope observations
     GPS      = 2,  // Onboard GPS telemetry
@@ -23,14 +23,14 @@ enum ssap_data_quality {
 };
 
 /* SSAP Alert Levels */
-enum ssap_alert_level {
+enum bit<8> ssap_alert_level {
     GREEN  = 0,  // No conjunction risk
     YELLOW = 1,  // >10km separation
     ORANGE = 2,  // <10km separation
     RED    = 3,  // <1km separation
 };
 
-/​**​
+/**
  * SSAP Base Header (24 bytes)
  * Core space object tracking header
  */
@@ -44,7 +44,7 @@ header ssap_header {
     bit<8>  reserved;
 };
 
-/​**​
+/**
  * SSAP Orbital Elements (40 bytes)
  * Two-line element set (TLE) plus enhancements
  */
@@ -61,7 +61,7 @@ header ssap_orbit {
     bit<16> error_margin;  // Position error (m)
 };
 
-/​**​
+/**
  * SSAP State Vector (32 bytes)
  * High-precision Cartesian coordinates
  */
@@ -75,7 +75,7 @@ header ssap_state {
     bit<32> time_offset;  // Time since reference (μs)
 };
 
-/​**​
+/**
  * SSAP Conjunction Alert (28 bytes)
  * Close approach notification
  */
@@ -89,12 +89,12 @@ header ssap_ca {
     bit<16> confidence;       // Prediction confidence
 };
 
-/​**​
+/**
  * CCSDS Space Packet Header (6 bytes)
  * Standard space communication encapsulation
  */
 header ccsds_transport {
-    bit<3>  version = 0;  // CCSDS version
+    // bit<3>  version = 0;  // (pseudocode: field initializer removed)  // CCSDS version
     bit<1>  type;         // 0=telemetry, 1=command
     bit<1>  sec_header;   // Secondary header flag
     bit<11> apid;         // Application process ID
@@ -103,9 +103,10 @@ header ccsds_transport {
     bit<16> length;       // Packet data length
 };
 
-/​**​
+/**
  * P4 Parser Logic for SSAP
  */
+/*
 parser ssap_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ccsds_transport);
@@ -130,10 +131,12 @@ parser ssap_parser(packet_in pkt, out headers hdr) {
         transition emergency;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for SSAP
  */
+/*
 control ssap_control(inout headers hdr) {
     action calculate_collision() {
         // Real-time collision probability update
@@ -191,3 +194,4 @@ control ssap_control(inout headers hdr) {
         ssap_processing.apply();
     }
 }
+*/

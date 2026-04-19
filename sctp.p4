@@ -3,7 +3,7 @@
  * 流控制传输协议报头 - 提供可靠的多流消息传输
  * Stream Control Transmission Protocol Header
  * Provides reliable multi-stream message delivery
- ​**********************************************************/
+ **********************************************************/
 
 header sctp_t {
     bit<16> src_port;          // Source port (similar to TCP/UDP ports)    源端口号 (类似 TCP/UDP 端口)

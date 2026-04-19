@@ -1,4 +1,4 @@
-/​**​
+/**
  * FTP Header Definition in P4
  * File Transfer Protocol for network file operations
  * 
@@ -6,7 +6,7 @@
  */
 
 /* FTP Command Types */
-enum ftp_command {
+enum bit<8> ftp_command {
     USER = 0,  // Authentication username
     PASS = 1,  // Authentication password
     LIST = 2,  // Directory listing
@@ -15,19 +15,19 @@ enum ftp_command {
     QUIT = 5,  // Terminate session
 };
 
-/​**​
+/**
  * FTP Control Header
  */
 header ftp_control {
     bit<16> src_port;       // Client port (ephemeral)
-    bit<16> dst_port = 21;  // FTP control port
+    // bit<16> dst_port = 21;  // (pseudocode: field initializer removed)  // FTP control port
     bit<16> length;         // Command length
     bit<16> seq_num;        // Command sequence
     bit<8>  command;        // FTP command (ftp_command)
-    bit<8>  args[];         // Command arguments
+    varbit<1024> args;         // Command arguments
 };
 
-/​**​
+/**
  * FTP Data Header (12 bytes)
  */
 header ftp_data {

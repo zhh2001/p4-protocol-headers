@@ -1,4 +1,4 @@
-/​**​
+/**
  * IPv4 Header Definition in P4
  * Internet Protocol version 4 header for packet routing
  * 
@@ -7,7 +7,7 @@
  */
 
 /* IP Protocol Numbers */
-enum ip_protocol {
+enum bit<8> ip_protocol {
     ICMP = 1,    // Internet Control Message Protocol
     TCP = 6,     // Transmission Control Protocol
     UDP = 17,    // User Datagram Protocol
@@ -17,7 +17,7 @@ enum ip_protocol {
 };
 
 /* IP Precedence Levels */
-enum ip_precedence {
+enum bit<8> ip_precedence {
     ROUTINE = 0,    // Routine precedence
     PRIORITY = 1,   // Priority
     IMMEDIATE = 2,  // Immediate
@@ -28,12 +28,12 @@ enum ip_precedence {
     NETWORK = 7     // Network Control
 };
 
-/​**​
+/**
  * IPv4 Header (20-60 bytes)
  * Standard IPv4 header with options
  */
 header ipv4_header {
-    bit<4>  version = 4;    // Version (4)
+    // bit<4>  version = 4;  // (pseudocode: field initializer removed)    // Version (4)
     bit<4>  ihl;            // Internet Header Length (in 32-bit words)
     bit<3>  precedence;     // Precedence (ip_precedence)
     bit<1>  delay;          // Delay (0=normal, 1=low)
@@ -52,22 +52,23 @@ header ipv4_header {
     bit<16> header_checksum; // Header checksum
     bit<32> src_addr;   // Source IP address
     bit<32> dst_addr;   // Destination IP address
-    bit<8>  options[];  // Optional fields (variable length)
+    varbit<1024> options;  // Optional fields (variable length)
 };
 
-/​**​
+/**
  * Ethernet Header (14 bytes)
  * Ethernet encapsulation for IPv4
  */
 header ethernet_header {
     bit<48> dst_mac;   // Destination MAC
     bit<48> src_mac;   // Source MAC
-    bit<16> ether_type = 0x0800;  // IPv4 type
+    // bit<16> ether_type = 0x0800;  // (pseudocode: field initializer removed)  // IPv4 type
 };
 
-/​**​
+/**
  * P4 Parser Logic for IPv4
  */
+/*
 parser ipv4_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.ethernet_header);
@@ -86,10 +87,12 @@ parser ipv4_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for upper layer protocols...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for IPv4
  */
+/*
 control ipv4_control(inout headers hdr) {
     action route_ipv4() {
         // Basic IPv4 routing
@@ -136,3 +139,4 @@ control ipv4_control(inout headers hdr) {
         ipv4_processing.apply();
     }
 }
+*/

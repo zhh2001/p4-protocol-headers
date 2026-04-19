@@ -1,4 +1,4 @@
-/​**​
+/**
  * OpenFlow Header Definition in P4
  * OpenFlow协议P4定义
  * 
@@ -10,7 +10,7 @@
 /* OpenFlow Protocol Versions - 枚举定义
  * OpenFlow 协议版本
  */
-enum ofp_version {
+enum bit<8> ofp_version {
     OFP_1_0 = 0x01,  // OpenFlow 1.0
     OFP_1_1 = 0x02,  // OpenFlow 1.1
     OFP_1_2 = 0x03,  // OpenFlow 1.2
@@ -22,7 +22,7 @@ enum ofp_version {
 /* OpenFlow Message Types - 枚举定义
  * OpenFlow 消息类型
  */
-enum ofp_type {
+enum bit<8> ofp_type {
     OFPT_HELLO            = 0,   // Hello message
     OFPT_ERROR            = 1,   // Error message
     OFPT_ECHO_REQUEST     = 2,   // Echo request
@@ -34,7 +34,7 @@ enum ofp_type {
     OFPT_PORT_STATUS      = 12   // Port status change
 }
 
-/​**​
+/**
  * OpenFlow Header - 基本消息头
  * 所有 OpenFlow 消息都以这个头开始
  */
@@ -68,7 +68,7 @@ header ofp_header {
     bit<32> xid;
 }
 
-/​**​
+/**
  * OpenFlow Port Structure - 端口结构
  * Used in port status messages and features reply
  * 用于端口状态消息和特性回复
@@ -110,7 +110,7 @@ header ofp_port {
     bit<32> state;
 }
 
-/​**​
+/**
  * OpenFlow Flow Match Structure - 流匹配结构
  * Used in flow table entries
  * 用于流表条目
@@ -139,7 +139,7 @@ header ofp_match {
                         // 通常包括in_port、eth_src、eth_dst等
 }
 
-/​**​
+/**
  * OpenFlow Flow Mod Message - 流修改消息
  * Used to add/modify/delete flow table entries
  * 用于添加/修改/删除流表条目
@@ -192,7 +192,7 @@ header ofp_flow_mod {
      * Describes the fields to match
      * 描述要匹配的字段
      */
-    ofp_match match;
+    // ofp_match match;  // (removed: nested header reference)
     
     /* Instructions - variable
      * 指令 - 可变

@@ -1,4 +1,4 @@
-/​**​
+/**
  * NETCONF Header Definition in P4
  * NETCONF协议P4定义
  * 
@@ -7,14 +7,14 @@
  */
 
 /* NETCONF Message Types */
-enum netconf_message_type {
+enum bit<8> netconf_message_type {
     HELLO        = 0,  // 会话初始化
     RPC          = 1,  // 远程调用请求
     RPC_REPLY    = 2,  // 远程调用响应
     NOTIFICATION = 3   // 通知消息
 }
 
-/​**​
+/**
  * NETCONF Message Header
  * NETCONF 消息头
  */
@@ -55,7 +55,7 @@ header netconf_header {
     bit<32> payload_length;
 }
 
-/​**​
+/**
  * NETCONF Hello Capabilities
  * NETCONF Hello能力集
  */
@@ -75,7 +75,7 @@ header netconf_hello_capabilities {
     bit<32> proposed_session_id;
 }
 
-/​**​
+/**
  * NETCONF RPC Operation
  * NETCONF RPC 操作
  */
@@ -116,7 +116,7 @@ header netconf_rpc_operation {
     bit<8> default_operation;
 }
 
-/​**​
+/**
  * NETCONF Filter
  * NETCONF过滤器
  */
@@ -135,7 +135,7 @@ header netconf_filter {
     bit<16> selector_length;
 }
 
-/​**​
+/**
  * NETCONF Notification
  * NETCONF通知
  */
@@ -162,7 +162,7 @@ header netconf_notification {
     bit<32> sequence_number;
 }
 
-/​**​
+/**
  * NETCONF Error
  * NETCONF错误
  */
@@ -202,7 +202,7 @@ header netconf_error {
     bit<16> error_message_length;
 }
 
-/​**​
+/**
  * NETCONF Transport Header (over SSH)
  * NETCONF传输头(基于SSH)
  */

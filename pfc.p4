@@ -3,7 +3,7 @@
  * 基于优先级的流量控制报头 - 用于数据中心无损网络             
  * Priority-based Flow Control Header                      
  * Enables lossless transport for DC networks              
- ​**********************************************************/
+ **********************************************************/
 
 header pfc_t {
     // ---- 基本控制字段 (4 字节) ----
@@ -12,7 +12,7 @@ header pfc_t {
     bit<4> time_value;       // Pause time units (×512 bit-times)             暂停时间单位 (单位×512比特时间)
 
     // ---- 每优先级控制字段 (8×2 字节) ----
-    bit<16> class_pause[8];  // Per-class pause duration (0-65535)  各优先级的暂停时间 (0-65535)
+    bit<128> class_pause;  // Per-class pause duration (0-65535)  各优先级的暂停时间 (0-65535)
     
     // ---- 增强型时间戳字段 (可选扩展) ----
     bit<32> timestamp;    // Precision timestamp (IEEE 1588 format)  精确时间戳 (IEEE 1588 格式)

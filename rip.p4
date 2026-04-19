@@ -16,7 +16,7 @@ header rip_t {
 
     // 路由条目 (可变数量) - 最多 25 个条目
     // Routing entries (variable) - Max 25 entries
-    rip_entry_t[25] entries;
+    // rip_entry_t[25] entries;  // (removed: nested header reference)
 }
 
 header rip_entry_t {

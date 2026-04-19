@@ -1,4 +1,4 @@
-/​**​
+/**
  * MPLS Header Definition in P4
  * Multiprotocol Label Switching protocol for packet forwarding
  * 
@@ -7,14 +7,14 @@
  */
 
 /* MPLS Label Operations */
-enum mpls_operation {
+enum bit<8> mpls_operation {
     PUSH = 0,     // Add MPLS label stack
     SWAP = 1,     // Replace top label
     POP  = 2      // Remove top label
 };
 
 /* MPLS Reserved Label Values */
-enum mpls_special_labels {
+enum bit<8> mpls_special_labels {
     IPV4_EXPLICIT_NULL = 0,           // IPv4 explicit null label
     ROUTER_ALERT       = 1,           // Router alert label
     IPV6_EXPLICIT_NULL = 2,           // IPv6 explicit null label
@@ -22,7 +22,7 @@ enum mpls_special_labels {
     OAM_ALERT          = 14           // OAM alert label
 };
 
-/​**​
+/**
  * MPLS Shim Header (32 bits)
  * Label stack entry format
  */
@@ -33,17 +33,17 @@ header mpls_shim {
     bit<8>  ttl;              // Time to live
 };
 
-/​**​
+/**
  * MPLS Transport Header (Ethernet)
  * Ethernet type for MPLS
  */
 header mpls_transport {
     bit<48> dst_mac;            // Destination MAC address
     bit<48> src_mac;            // Source MAC address
-    bit<16> eth_type = 0x8847;  // MPLS unicast (0x8848 for multicast)
+    // bit<16> eth_type = 0x8847;  // (pseudocode: field initializer removed)  // MPLS unicast (0x8848 for multicast)
 };
 
-/​**​
+/**
  * MPLS Control Header
  * Used by control plane for label distribution
  */
@@ -54,7 +54,7 @@ header mpls_control {
     bit<32> session_id;      // Control session identifier
 };
 
-/​**​
+/**
  * MPLS Label Distribution Protocol (LDP) Header
  * Used for label binding distribution
  */
@@ -65,7 +65,7 @@ header mpls_ldp {
     bit<16> label_space;    // Label space identifier
 };
 
-/​**​
+/**
  * MPLS Label Mapping Message
  * Contains FEC-label bindings
  */
@@ -76,7 +76,7 @@ header mpls_label_mapping {
     bit<16> attributes;     // Label attributes
 };
 
-/​**​
+/**
  * MPLS Traffic Engineering (RSVP-TE) Header
  * Used for constraint-based routing
  */
@@ -89,7 +89,7 @@ header mpls_rsvp_te {
     bit<16> reserved;       // Must be 0
 };
 
-/​**​
+/**
  * MPLS Explicit Route Object (ERO)
  * Specifies path for traffic engineering
  */
@@ -101,9 +101,10 @@ header mpls_ero {
     bit<32> node_addr;      // Node address
 };
 
-/​**​
+/**
  * P4 Parser Logic for MPLS
  */
+/*
 parser mpls_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.mpls_transport);
@@ -129,10 +130,12 @@ parser mpls_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for payload types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for MPLS
  */
+/*
 control mpls_control(inout headers hdr) {
     action push_label(new_label, tc, ttl) {
         // Add new label to the stack
@@ -176,3 +179,4 @@ control mpls_control(inout headers hdr) {
         mpls_forwarding.apply();
     }
 }
+*/

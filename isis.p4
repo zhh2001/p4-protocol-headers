@@ -80,6 +80,6 @@ const isisTlv_t ISIS_TLV_HOSTNAME      = 8w137;  // 设备主机名
  * 典型工作流程
  *     1. 邻居发现：通过 IIH Hello 报文建立邻接关系
  *     2. 链路状态传播：使用 LSP（链路状态 PDU）洪泛拓扑信息
- *     3. ​数据库同步：通过 CSNP/PSNP 报文确保 LSDB 一致性
- *     4. ​SPF 计算：基于 Dijkstra 算法计算最短路径树
+ *     3. 数据库同步：通过 CSNP/PSNP 报文确保 LSDB 一致性
+ *     4. SPF 计算：基于 Dijkstra 算法计算最短路径树
  */

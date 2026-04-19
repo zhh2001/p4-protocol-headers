@@ -1,4 +1,4 @@
-/​**​
+/**
  * IGMP Header Definition in P4
  * Internet Group Management Protocol for IP multicast group management
  * 
@@ -7,14 +7,14 @@
  */
 
 /* IGMP Version Types */
-enum igmp_version {
+enum bit<8> igmp_version {
     IGMPv1 = 1,
     IGMPv2 = 2, 
     IGMPv3 = 3
 };
 
 /* IGMP Message Types */
-enum igmp_type {
+enum bit<8> igmp_type {
     MEMBERSHIP_QUERY = 0x11,        // Membership query
     V1_MEMBERSHIP_REPORT = 0x12,    // IGMPv1 report
     V2_MEMBERSHIP_REPORT = 0x16,    // IGMPv2 report
@@ -23,13 +23,13 @@ enum igmp_type {
 };
 
 /* IGMP Query Types */
-enum igmp_query_type {
+enum bit<8> igmp_query_type {
     GENERAL_QUERY = 1,      // Query all groups
     GROUP_SPECIFIC_QUERY = 2, // Query specific group
     STATE_CHANGE_QUERY = 3   // Query for state change
 };
 
-/​**​
+/**
  * IGMP Common Header (8 bytes)
  * Base header for all IGMP messages
  */
@@ -40,7 +40,7 @@ header igmp_header {
     bit<32> group_address;  // Multicast group address
 };
 
-/​**​
+/**
  * IGMPv3 Membership Query (12+ bytes)
  * Extended header for IGMPv3 queries
  */
@@ -48,20 +48,20 @@ header igmpv3_query {
     bit<8> flags;           // [S=suppress router side processing]
     bit<8> qqi;             // Querier's Query Interval
     bit<16> num_sources;    // Number of source addresses
-    bit<32> sources[];      // Source addresses (variable length)
+    varbit<1024> sources;      // Source addresses (variable length)
 };
 
-/​**​
+/**
  * IGMPv3 Membership Report (8+ bytes)
  * Extended header for IGMPv3 reports
  */
 header igmpv3_report {
     bit<16> reserved;       // Must be 0
     bit<16> num_group_recs; // Number of group records
-    bit<8> group_records[]; // Group records (variable length)
+    varbit<1024> group_records; // Group records (variable length)
 };
 
-/​**​
+/**
  * IGMPv3 Group Record (8+ bytes)
  * Individual group record in IGMPv3 report
  */
@@ -70,11 +70,11 @@ header igmpv3_group_rec {
     bit<8> aux_data_len;    // Length of auxiliary data
     bit<16> num_sources;    // Number of sources
     bit<32> mcast_addr;     // Multicast address
-    bit<32> sources[];      // Source addresses (variable length)
-    bit<8> aux_data[];      // Auxiliary data (variable length)
+    varbit<1024> sources;      // Source addresses (variable length)
+    varbit<1024> aux_data;      // Auxiliary data (variable length)
 };
 
-/​**​
+/**
  * IGMP Transport Header (IP)
  * Outer IP header for IGMP messages
  */
@@ -84,16 +84,17 @@ header igmp_transport {
     bit<16> total_length;   // Total packet length
     bit<16> identification; // IP identification
     bit<16> flags_frag_offset; // Flags + Fragment offset
-    bit<8> ttl = 1;        // Time to live (typically 1)
-    bit<8> protocol = 2;    // IGMP protocol number
+    // bit<8> ttl = 1;  // (pseudocode: field initializer removed)        // Time to live (typically 1)
+    // bit<8> protocol = 2;  // (pseudocode: field initializer removed)    // IGMP protocol number
     bit<16> header_checksum; // IP header checksum
     bit<32> src_ip;        // Source IP address
     bit<32> dst_ip;        // Destination IP address
 };
 
-/​**​
+/**
  * P4 Parser Logic for IGMP
  */
+/*
 parser igmp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.igmp_transport);
@@ -125,10 +126,12 @@ parser igmp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for specific IGMP message types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for IGMP
  */
+/*
 control igmp_control(inout headers hdr) {
     action process_membership_query() {
         // Process membership query from router
@@ -181,3 +184,4 @@ control igmp_control(inout headers hdr) {
         igmp_processing.apply();
     }
 }
+*/

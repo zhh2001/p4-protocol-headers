@@ -27,13 +27,16 @@ const bit<8> SR_OP_REPLACE  = 0x3;  // 替换当前标签
 
 
 // Example: 标签栈操作 (Pseudocode)
+/*
 action push_srmpls_label() {
     srmpls_t.label = SRGB_BASE + segment_id;
     srmpls_t.ttl = 8w64;
     srmpls_t.bottom_of_stack = (remaining_segments == 0);
 }
+*/
 
-// Example: ​路径编程 (Pseudocode)
+// Example: 路径编程 (Pseudocode)
+/*
 table srmpls_transit {
     key = {
         srmpls_t.label: exact;
@@ -45,8 +48,9 @@ table srmpls_transit {
     }
     size = 100000;
 }
+*/
 
-// Example: ​流量工程支持 (Pseudocode)
+// Example: 流量工程支持 (Pseudocode)
 header srmpls_te_t {
     bit<32>  latency;      // 时延约束(μs)
     bit<32>  jitter;       // 抖动约束
@@ -55,22 +59,27 @@ header srmpls_te_t {
 
 
 // 与 SRv6 的互操作 (Pseudocode)
+/*
 action srmpls_to_srv6() {
     srv6_t.dst_addr = sid_to_ipv6(srmpls_t.label - SRGB_BASE);
     remove_mpls_header();
 }
+*/
 
 
 /* ====== 典型工作流程 ====== */
 
-// 1. ​​入口节点封装​​：(Pseudocode)
+// 1. 入口节点封装：(Pseudocode)
+/*
 action encapsulate_srmpls() {
     srmpls_t[0].label = 16001;  // Node SID
     srmpls_t[1].label = 16005;  // Adjacency SID
     srmpls_t[1].bottom_of_stack = 1;
 }
+*/
 
-// 2. 中转节点处理​​：(Pseudocode)
+// 2. 中转节点处理：(Pseudocode)
+/*
 action swap_segment() {
     srmpls_t.label = next_label;
     srmpls_t.ttl = srmpls_t.ttl - 8w1;
@@ -78,16 +87,21 @@ action swap_segment() {
         remove_mpls_header();
     }
 }
+*/
 
-// 3. 倒数第二跳弹出​​：(Pseudocode)
+// 3. 倒数第二跳弹出：(Pseudocode)
+/*
 action penultimate_hop_pop() {
     if (srmpls_t[0].label == EXPLICIT_NULL) {
         srmpls_t[0].setInvalid();
     }
 }
+*/
 
-// 4. 显式路径引导​​：(Pseudocode)
+// 4. 显式路径引导：(Pseudocode)
+/*
 action insert_adjacency_sid() {
     srmpls_t[0].flags |= 8w0x04;  // 显式路径标志
     srmpls_t[0].flow_tag = flow_hash;
 }
+*/

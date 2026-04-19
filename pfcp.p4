@@ -38,11 +38,13 @@ const ie_type_t PFCP_IE_URR      = 16w0x0003;  // 用量报告规则
 
 
 // Example: 会话管理 (Pseudocode)
+/*
 action create_session() {
     pfcp_t.message_type = 6w4;  // Session Establishment
     pfcp_t.s_bit = 1w1;
     pfcp_ie_t.ie_type = PFCP_IE_PDR;
 }
+*/
 
 // Example: 规则编程 (Pseudocode)
 header pfcp_pdr_t {
@@ -63,15 +65,18 @@ header pfcp_qos_ie_t {
 
 // 典型工作流程：
 //     1. 节点发现：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action send_heartbeat() {
     pfcp_t.message_type = 6w1;
     pfcp_ie_t.ie_type = PFCP_IE_NODE_ID;
     pfcp_ie_t.ie_value = ipv4.src;
 }
-//     2. ​会话建立：
+*/
+//     2. 会话建立：
 //         - SMF 发送 Session Establishment Request
 //         - UPF 分配 SEID 并回复 Response
 //     3. 规则下发：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 table apply_pdr {
     key = {
         pfcp_pdr_t.pdi: ternary;
@@ -82,9 +87,12 @@ table apply_pdr {
     }
     size = 65536;
 }
+*/
 //     4. 用量报告：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 meter usage_meter {
     type = bytes;
     result = pfcp_ie_t.ie_value;
     size = 1024;
 }
+*/

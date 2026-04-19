@@ -1,10 +1,10 @@
-/​**​
+/**
  * SMB Header Definition in P4
  * Server Message Block protocol for file/printer sharing
  */
 
 /* SMB Command Codes */
-enum smb_command {
+enum bit<8> smb_command {
     NEGOTIATE     = 0x72,
     SESSION_SETUP = 0x73,
     TREE_CONNECT  = 0x75,
@@ -13,11 +13,11 @@ enum smb_command {
     WRITE         = 0x2F,
 };
 
-/​**​
+/**
  * SMB2 Header (64 bytes)
  */
 header smb2 {
-    bit<32>  protocol_id = 32w0x424D53FE;  // 'SMB2' marker
+    // bit<32>  protocol_id = 32w0x424D53FE;  // (pseudocode: field initializer removed)  // 'SMB2' marker
     bit<16>  header_len;                   // Header length
     bit<16>  credit_charge;                // Flow control
     bit<32>  status;                       // Operation status

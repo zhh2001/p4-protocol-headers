@@ -1,4 +1,4 @@
-/​**​
+/**
  * HTTP/3 Header Definition in P4
  * Hypertext Transfer Protocol version 3 over QUIC
  * 
@@ -7,7 +7,7 @@
  */
 
 /* HTTP/3 Frame Types */
-enum http3_frame_type {
+enum bit<8> http3_frame_type {
     DATA = 0x0,          // Data payload
     HEADERS = 0x1,       // HTTP headers
     CANCEL_PUSH = 0x3,   // Push promise cancellation
@@ -18,43 +18,43 @@ enum http3_frame_type {
 };
 
 /* HTTP/3 Error Codes */
-enum http3_error_code {
+enum bit<16> http3_error_code {
     NO_ERROR = 0x100,           // Graceful shutdown
     WRONG_SETTINGS = 0x104,     // Invalid settings
     REQUEST_CANCELLED = 0x105,  // Client cancelled request
     INTERNAL_ERROR = 0x106      // Implementation error
 };
 
-/​**​
+/**
  * HTTP/3 Frame Header (Variable length)
  * Common frame header format
  */
 header http3_frame {
     bit<3>  type;               // Frame type (http3_frame_type)
     bit<5>  length;             // Initial length field
-    bit<8>  extended_length[];  // Extended length (if needed)
+    varbit<1024> extended_length;  // Extended length (if needed)
     bit<32> stream_id;          // QUIC stream identifier
 };
 
-/​**​
+/**
  * HTTP/3 DATA Frame (Variable length)
  * Payload data frame
  */
 header http3_data {
     bit<64> payload_len;  // Payload length
-    bit<8>  payload[];    // Application data
+    varbit<1024> payload;    // Application data
 };
 
-/​**​
+/**
  * HTTP/3 HEADERS Frame (Variable length)
  * HTTP header block
  */
 header http3_headers {
     bit<64> header_len;      // Header block length
-    bit<8>  header_block[];  // QPACK compressed headers
+    varbit<1024> header_block;  // QPACK compressed headers
 };
 
-/​**​
+/**
  * HTTP/3 SETTINGS Frame (Variable length)
  * Connection configuration
  */
@@ -65,13 +65,13 @@ header http3_settings {
     bit<16> reserved;                  // Future use
 };
 
-/​**​
+/**
  * QUIC Transport Header (Variable length)
  * QUIC short header for HTTP/3
  */
 header quic_transport {
     bit<1>  header_form;       // Header format (1=short)
-    bit<1>  fixed_bit = 1;     // Always 1
+    // bit<1>  fixed_bit = 1;  // (pseudocode: field initializer removed)     // Always 1
     bit<1>  spin_bit;          // Latency spin bit
     bit<5>  reserved_bits;     // Reserved
     bit<8>  dest_conn_id_len;  // Destination connection ID length
@@ -79,9 +79,10 @@ header quic_transport {
     bit<32> packet_num;        // Packet number
 };
 
-/​**​
+/**
  * P4 Parser Logic for HTTP/3
  */
+/*
 parser http3_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.quic_transport);
@@ -108,10 +109,12 @@ parser http3_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for other frame types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for HTTP/3
  */
+/*
 control http3_control(inout headers hdr) {
     action process_data_frame() {
         // Process HTTP/3 data payload
@@ -161,3 +164,4 @@ control http3_control(inout headers hdr) {
         http3_processing.apply();
     }
 }
+*/

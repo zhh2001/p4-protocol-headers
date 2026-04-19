@@ -40,6 +40,7 @@ const next_protocol_t VXLAN_GPE_NEXT_MPLS = 8w0x03;  // MPLS 协议
 
 
 // Example: 携带服务链信息的 IPv6 封装 (Pseudocode)
+/*
 action encapsulate_vxlan_gpe_nsh() {
     vxlan_gpe.setValid();
     vxlan_gpe.version = 1;
@@ -47,10 +48,13 @@ action encapsulate_vxlan_gpe_nsh() {
     vxlan_gpe.next_protocol = VXLAN_GPE_NEXT_IP;
     vxlan_gpe.metadata = 0xABCDEF;  // 服务路径 ID
 }
+*/
 
 // Example: 传统以太网兼容模式 (Pseudocode)
+/*
 action encapsulate_vxlan_gpe_eth() {
     vxlan_gpe.setValid();
     vxlan_gpe.protocol = VXLAN_GPE_ETHERNET;
     vxlan_gpe.next_protocol = VXLAN_GPE_NEXT_IP;
 }
+*/

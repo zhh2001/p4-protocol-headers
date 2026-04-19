@@ -1,4 +1,4 @@
-/​**​
+/**
  * ICMP Header Definition in P4
  * Internet Control Message Protocol for network diagnostics and error reporting
  * 
@@ -7,7 +7,7 @@
  */
 
 /* ICMPv4 Message Types */
-enum icmpv4_type {
+enum bit<8> icmpv4_type {
     ECHO_REPLY        = 0,        // Echo reply (ping response)
     DEST_UNREACHABLE  = 3,        // Destination unreachable
     SOURCE_QUENCH     = 4,        // Source quench (congestion control)
@@ -20,7 +20,7 @@ enum icmpv4_type {
 };
 
 /* ICMPv4 Destination Unreachable Codes */
-enum icmpv4_unreach_code {
+enum bit<8> icmpv4_unreach_code {
     NET_UNREACHABLE       = 0,          // Network unreachable
     HOST_UNREACHABLE      = 1,          // Host unreachable
     PROTO_UNREACHABLE     = 2,          // Protocol unreachable
@@ -34,7 +34,7 @@ enum icmpv4_unreach_code {
     HOST_ADMIN_PROHIBITED = 10          // Host administratively prohibited
 };
 
-/​**​
+/**
  * ICMPv4 Header (8+ bytes)
  * Basic ICMP message header
  */
@@ -46,35 +46,35 @@ header icmpv4_header {
     bit<16> sequence;         // Echo/timestamp sequence number
 };
 
-/​**​
+/**
  * ICMPv4 Destination Unreachable (8+ bytes)
  * Extended header for unreachable messages
  */
 header icmpv4_unreachable {
     bit<16> unused;             // Must be 0
     bit<16> next_hop_mtu;       // Next hop MTU (for fragmentation needed)
-    bit<8>  original_header[];  // Original IP header + 8 bytes of payload
+    varbit<1024> original_header;  // Original IP header + 8 bytes of payload
 };
 
-/​**​
+/**
  * ICMPv4 Time Exceeded (8+ bytes)
  * Extended header for time exceeded messages
  */
 header icmpv4_time_exceeded {
     bit<32> unused;             // Must be 0
-    bit<8>  original_header[];  // Original IP header + 8 bytes of payload
+    varbit<1024> original_header;  // Original IP header + 8 bytes of payload
 };
 
-/​**​
+/**
  * ICMPv4 Redirect (8+ bytes)
  * Extended header for redirect messages
  */
 header icmpv4_redirect {
     bit<32> gateway_address;    // Address of better gateway
-    bit<8>  original_header[];  // Original IP header + 8 bytes of payload
+    varbit<1024> original_header;  // Original IP header + 8 bytes of payload
 };
 
-/​**​
+/**
  * ICMPv4 Timestamp (12 bytes)
  * Header for timestamp messages
  */
@@ -84,7 +84,7 @@ header icmpv4_timestamp {
     bit<32> transmit;        // Transmit timestamp
 };
 
-/​**​
+/**
  * ICMPv6 Header (8+ bytes)
  * Basic ICMPv6 message header
  */
@@ -94,17 +94,17 @@ header icmpv6_header {
     bit<16> checksum;         // ICMPv6 checksum
 };
 
-/​**​
+/**
  * ICMPv6 Neighbor Discovery (24+ bytes)
  * Used for IPv6 neighbor discovery
  */
 header icmpv6_neighbor_discovery {
     bit<32>  flags;            // Neighbor discovery flags
     bit<128> target_address;   // Target IPv6 address
-    bit<8>   options[];        // ND options (variable length)
+    varbit<1024> options;        // ND options (variable length)
 };
 
-/​**​
+/**
  * ICMP Transport Header (IP)
  * Outer IP header for ICMP messages
  */
@@ -121,9 +121,10 @@ header icmp_transport {
     bit<32> dst_ip;             // Destination IP address
 };
 
-/​**​
+/**
  * P4 Parser Logic for ICMP
  */
+/*
 parser icmp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.icmp_transport);
@@ -155,10 +156,12 @@ parser icmp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for specific ICMP types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for ICMP
  */
+/*
 control icmp_control(inout headers hdr) {
     action generate_echo_reply() {
         // Generate ICMP echo reply from request
@@ -205,3 +208,4 @@ control icmp_control(inout headers hdr) {
         icmp_processing.apply();
     }
 }
+*/

@@ -1,4 +1,4 @@
-/​**​
+/**
  * OpenConfig Header Definition in P4
  * OpenConfig协议P4定义
  * 
@@ -7,7 +7,7 @@
  */
 
 /* OpenConfig Model Types */
-enum oc_model_type {
+enum bit<8> oc_model_type {
     INTERFACE_MODEL = 0,    // 接口模型
     BGP_MODEL       = 1,    // BGP模型
     ACL_MODEL       = 2,    // ACL模型
@@ -15,7 +15,7 @@ enum oc_model_type {
     TELEMETRY_MODEL = 4     // 遥测模型
 }
 
-/​**​
+/**
  * OpenConfig Message Header
  * OpenConfig消息头
  */
@@ -63,7 +63,7 @@ header oc_header {
     bit<32> payload_length;
 }
 
-/​**​
+/**
  * OpenConfig Path Element
  * OpenConfig路径元素
  */
@@ -83,7 +83,7 @@ header oc_path_element {
     bit<16> key_count;
 }
 
-/​**​
+/**
  * OpenConfig Path Key
  * OpenConfig路径键
  */
@@ -103,7 +103,7 @@ header oc_path_key {
     bit<16> value_length;
 }
 
-/​**​
+/**
  * OpenConfig Interface Model
  * OpenConfig接口模型
  */
@@ -156,7 +156,7 @@ header oc_interface {
     bit<64> out_errors;
 }
 
-/​**​
+/**
  * OpenConfig BGP Model
  * OpenConfig BGP模型
  */
@@ -210,7 +210,7 @@ header oc_bgp {
     bit<64> uptime;
 }
 
-/​**​
+/**
  * OpenConfig Telemetry Model
  * OpenConfig遥测模型
  */
@@ -250,7 +250,7 @@ header oc_telemetry {
     bit<32> data_length;
 }
 
-/​**​
+/**
  * OpenConfig Transport Header (over gRPC)
  * OpenConfig传输头(基于gRPC)
  */

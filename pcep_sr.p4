@@ -1,4 +1,4 @@
-// PCEP-SR (Path Computation Element Protocol for Segment Routing)​​  集中式 SR 路径计算的关键控制协议
+// PCEP-SR (Path Computation Element Protocol for Segment Routing)  集中式 SR 路径计算的关键控制协议
 header pcep_sr_t {
     // PCEP 公共头部 (RFC 5440)
     bit<3>   version;        // 固定为 1
@@ -46,18 +46,22 @@ const bit<8> SR_BEHAVIOR_X   = 8w0x02;  // 跨连接行为
 
 
 // Example: 多域路径计算 (Pseudocode)
+/*
 action add_inter_domain_sid() {
     pcep_sr_t.sid_type = SR_SID_IPV6;
     pcep_sr_t.sid_list = {domain1_border_sid, domain2_entry_sid};
 }
+*/
 
 // Example: 策略下发 (Pseudocode)
+/*
 action create_sr_policy() {
     pcep_sr_policy_t.tlv_type = 16w1;  // 候选路径
     pcep_sr_policy_t.tlv_value = {primary_path, backup_path};
 }
+*/
 
-// Example: 实时优化​​ (Pseudocode)
+// Example: 实时优化 (Pseudocode)
 header pcep_sr_metric_t {
     bit<8>   metric_type;    // 1=时延 2=带宽 3=跳数
     bit<24>  threshold;      // 优化阈值
@@ -66,34 +70,42 @@ header pcep_sr_metric_t {
 
 
 // 与 BGP-LS 的集成：(Pseudocode)
+/*
 action import_bgpls_topology() {
     pcep_sr_t.sid_list = bgpls_sid;
     pcep_sr_t.flags |= 24w0x01;  // 标记为 BGP-LS 学习路径
 }
+*/
 
 
 /* ====== 典型工作流程 ====== */
 
-// 1. 路径请求​​：(Pseudocode)
+// 1. 路径请求：(Pseudocode)
+/*
 action send_sr_request() {
     pcep_sr_t.msg_type = 8w10;
     pcep_sr_t.object_class = 16w36;  // SR-ERO
     pcep_sr_t.sid_type = SR_SID_MPLS;
 }
+*/
 
-// 2. 路径计算​​：
+// 2. 路径计算：
 //     - PCE 根据拓扑数据库计算 SR 路径
 //     - 考虑 TE 约束（带宽/时延/亲和力）
 
-// 3. 路径响应​​：(Pseudocode)
+// 3. 路径响应：(Pseudocode)
+/*
 action encode_sr_path() {
     pcep_sr_t.sid_list = {16001, 16005, 16009};
     pcep_sr_policy_t.tlv_type = 16w2;  // 偏好值
     pcep_sr_policy_t.tlv_value = 100;
 }
+*/
 
-// 4. 状态同步​​：(Pseudocode)
+// 4. 状态同步：(Pseudocode)
+/*
 action report_sr_state() {
     pcep_sr_t.msg_type = 8w7;  // PCRpt
     pcep_sr_t.object_class = 16w37;  // SR-RRO
 }
+*/

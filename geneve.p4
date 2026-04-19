@@ -3,7 +3,7 @@
  * 通用网络虚拟化封装报头 - 新一代数据中心 overlay 协议        
  * Generic Network Virtualization Encapsulation Header     
  * Next-gen overlay protocol for data centers              
- ​**********************************************************/
+ **********************************************************/
 
 typedef bit<16> protocol_t;
 typedef bit<16> opt_class_t;
@@ -22,7 +22,7 @@ header geneve_t {
 
     // 可变长选项头 (0-512 bits)
     // Variable options (RFC 8926)
-    geneve_option_t[16] options;
+    // geneve_option_t[16] options;  // (removed: nested header reference)
 }
 
 // Geneve 选项结构
@@ -49,28 +49,35 @@ const protocol_t GENEVE_PROTO_MPLS  = 0x8847;  // MPLS 封装
 /* ====== 关键特性说明 Start ====== */
 
 // Example 1: 多租户隔离 (Pseudocode)
+/*
 action set_vni() {
     geneve_t.vni = tenant_id << 8 | vlan_id;  // 24 位虚拟网络 ID
 }
+*/
 
 // Example 2: 动态选项处理 (Pseudocode)
+/*
 action add_ecmp_option() {
     geneve_option_t.opt_class = GENEVE_CLASS_NVO3;
     geneve_option_t.opt_type = GENEVE_TYPE_ECMP;
     geneve_option_t.opt_data = hash(ipv4.src, ipv4.dst);
 }
+*/
 
 // Example 3: 服务链集成 (Pseudocode)
+/*
 action encapsulate_nsh() {
     geneve_t.protocol = GENEVE_PROTO_NSH;
     geneve_t.options[0].opt_class = GENEVE_CLASS_NSH;
 }
+*/
 
 /* ====== 关键特性说明 End ====== */
 
 
 // 典型工作流程：
-//     1. ​虚拟网络封装：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+//     1. 虚拟网络封装：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 table vxlan_to_geneve {
     key = {
         vxlan.vni: exact;
@@ -81,7 +88,9 @@ table vxlan_to_geneve {
     }
     size = 4096;
 }
+*/
 //     2. 选项处理流水线：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 parser geneve_option_parser {
     extract(geneve_t.options);
     while (options_left > 0) {
@@ -89,11 +98,14 @@ parser geneve_option_parser {
         process_option(current_option);
     }
 }
-//     3. ​跨域传输：
+*/
+//     3. 跨域传输：
 //         - 基于 VNI 的虚拟网络路由
 //         - 使用选项携带 QoS 策略信息
 //     4. 终端解封装：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action terminate_geneve() {
     geneve_t.setInvalid();
     inner_ethernet.setValid();
 }
+*/

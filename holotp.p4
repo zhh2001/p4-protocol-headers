@@ -1,4 +1,4 @@
-/​**​
+/**
  * HoloTP Header Definition in P4
  * Holographic Transport Protocol for light-field video streaming
  * 
@@ -7,7 +7,7 @@
  */
 
 /* HoloTP Data Types */
-enum holotp_data_type {
+enum bit<8> holotp_data_type {
     LIGHT_FIELD = 0x1,    // Raw light field data
     DEPTH_MAP   = 0x2,    // Per-pixel depth information
     VIEWPORT    = 0x3,    // Predicted viewpoint data  
@@ -16,19 +16,19 @@ enum holotp_data_type {
 };
 
 /* HoloTP Compression Modes */
-enum holotp_compression {
+enum bit<8> holotp_compression {
     HOLO_RAW     = 0,  // Uncompressed light field
     HOLO_WAVELET = 1,  // Wavelet-based compression
     HOLO_AI      = 2,  // Neural network compression
     HOLO_DIFF    = 3,  // Differential encoding
 };
 
-/​**​
+/**
  * HoloTP Base Header (20 bytes)
  * Core header for holographic data streams
  */
 header holotp_header {
-    bit<4>  version = 1;   // Protocol version
+    // bit<4>  version = 1;  // (pseudocode: field initializer removed)   // Protocol version
     bit<4>  data_type;     // Data type (holotp_data_type)
     bit<8>  compression;   // Compression mode (holotp_compression)
     bit<16> stream_id;     // Unique stream identifier
@@ -38,7 +38,7 @@ header holotp_header {
     bit<8>  quality;       // Rendering quality level (1-100)
 };
 
-/​**​
+/**
  * HoloTP View Prediction Header
  * Viewer position/orientation prediction
  */
@@ -51,7 +51,7 @@ header holotp_view {
     bit<16> reserved;
 };
 
-/​**​
+/**
  * HoloTP Light Field Payload (Variable length)
  * Compressed light field data
  */
@@ -61,23 +61,24 @@ header holotp_lf {
     bit<16> spatial_res_x;  // Spatial resolution X
     bit<16> spatial_res_y;  // Spatial resolution Y
     bit<8>  color_depth;    // Bits per color channel
-    bit<8>  payload[];      // Actual light field data
+    varbit<1024> payload;      // Actual light field data
 };
 
-/​**​
+/**
  * QUIC Transport Header (Variable length)
  * QUIC protocol for holographic data
  */
 header quic_transport {
     bit<16> src_port;         // Source port
-    bit<16> dst_port = 4801;  // HoloTP default port
+    // bit<16> dst_port = 4801;  // (pseudocode: field initializer removed)  // HoloTP default port
     bit<32> connection_id;    // QUIC connection ID
     bit<8>  packet_number;    // Packet sequence
 };
 
-/​**​
+/**
  * P4 Parser Logic for HoloTP
  */
+/*
 parser holotp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.quic_transport);
@@ -103,10 +104,12 @@ parser holotp_parser(packet_in pkt, out headers hdr) {
         transition process_viewpred;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for HoloTP
  */
+/*
 control holotp_control(inout headers hdr) {
     action route_by_viewport() {
         // Prioritize tiles in predicted view frustum
@@ -160,3 +163,4 @@ control holotp_control(inout headers hdr) {
         holotp_processing.apply();
     }
 }
+*/

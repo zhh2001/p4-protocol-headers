@@ -1,4 +1,4 @@
-/​**​
+/**
  * GSDP Header Definition in P4
  * Genomic Sequencing Data Protocol for high-throughput DNA data transmission
  * 
@@ -7,7 +7,7 @@
  */
 
 /* GSDP Segment Types */
-enum gsdp_segment_type {
+enum bit<8> gsdp_segment_type {
     SEQUENCE_DATA = 0x1,    // Raw nucleotide sequences
     QUALITY_SCORES = 0x2,   // Base calling quality values
     READ_METADATA = 0x3,    // Sequencing instrument metadata
@@ -16,7 +16,7 @@ enum gsdp_segment_type {
 };
 
 /* GSDP Compression Algorithms */
-enum gsdp_compression {
+enum bit<8> gsdp_compression {
     UNCOMPRESSED = 0,    // No compression
     CRAM = 1,            // CRAM format compression
     DEEZ = 2,            // Reference-based compression
@@ -24,12 +24,12 @@ enum gsdp_compression {
     BZIP2 = 4            // High-ratio compression
 };
 
-/​**​
+/**
  * GSDP Base Header (16 bytes)
  * Common header for all genomic data segments
  */
 header gsdp_header {
-    bit<8>  version = 1;         // Protocol version
+    // bit<8>  version = 1;  // (pseudocode: field initializer removed)         // Protocol version
     bit<8>  segment_type;      // Data type (gsdp_segment_type)
     bit<16> sequencing_tech;  // Sequencing technology ID
     bit<32> sample_id;        // Unique sample identifier
@@ -39,7 +39,7 @@ header gsdp_header {
     bit<1>  last_segment; // End of sample marker
 };
 
-/​**​
+/**
  * GSDP Sequence Data Payload (Variable length)
  * Nucleotide sequence segment
  */
@@ -47,33 +47,34 @@ header gsdp_sequence {
     bit<2>  encoding;      // 00=ASCII, 01=2-bit, 10=8-bit, 11=custom
     bit<6>  reserved;
     bit<32> read_length;   // Number of bases
-    bit<8>  bases[];       // Sequence data
+    varbit<1024> bases;       // Sequence data
 };
 
-/​**​
+/**
  * GSDP Quality Scores (Variable length)
  * Per-base quality metrics
  */
 header gsdp_quality {
     bit<8>  score_encoding;  // 0=Phred33, 1=Phred64, 2=Binary
     bit<32> num_scores;      // Should match read length
-    bit<8>  scores[];        // Quality values
+    varbit<1024> scores;        // Quality values
 };
 
-/​**​
+/**
  * QUIC Transport Header (Variable length)
  * QUIC protocol for efficient genomic data transfer
  */
 header quic_transport {
     bit<16> src_port;         // Source port
-    bit<16> dst_port = 4800;  // GSDP default port
+    // bit<16> dst_port = 4800;  // (pseudocode: field initializer removed)  // GSDP default port
     bit<32> connection_id;    // QUIC connection ID
     bit<8>  packet_number;    // Packet sequence
 };
 
-/​**​
+/**
  * P4 Parser Logic for GSDP
  */
+/*
 parser gsdp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.quic_transport);
@@ -99,10 +100,12 @@ parser gsdp_parser(packet_in pkt, out headers hdr) {
         transition process_quality;
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for GSDP
  */
+/*
 control gsdp_control(inout headers hdr) {
     action route_by_sample() {
         // Route based on sample ID and sequencing tech
@@ -149,3 +152,4 @@ control gsdp_control(inout headers hdr) {
         gsdp_processing.apply();
     }
 }
+*/

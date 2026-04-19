@@ -61,10 +61,12 @@ header pcep_lsp_object_t {
 
 // 关键特性说明：
 //     1. 多模式支持：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action handle_stateful() {
     pcep_t.stateful = 1w1;  // 启用状态化模式
     pcep_t.lsp_update = 1w1;  // 允许 LSP 更新
 }
+*/
 //     2. 路径请求处理：( ↓↓↓ Example, Pseudocode ↓↓↓ )
 header pcep_req_object_t {
     bit<32>     request_id;    // 请求标识符
@@ -73,28 +75,34 @@ header pcep_req_object_t {
     bit<32>     constraints;   // 约束条件位图
 }
 //     3. SDN 集成示例：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action send_path_request() {
     pcep_t.msg_type = 8w3;  // PCReq
     pcep_req_object.constraints = 32w0x01;  // 最小跳数
 }
+*/
 
 
 // 典型工作流程：
 //     1. 会话建立：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action establish_session() {
     pcep_t.msg_type = 8w1;  // Open
     pcep_object.object_class = PCEP_OPEN_OBJ;
 }
+*/
 //     2. 路径计算请求：
 //         - PCC 发送 PCReq 消息携带：
 //             - RP 对象（请求参数）
 //             - END-POINTS 对象（端点）
 //             - BANDWIDTH 对象（带宽需求）
 //     3. 路径计算响应：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action send_path_reply() {
     pcep_t.msg_type = 8w4;  // PCRep
     pcep_object.object_class = PCEP_BANDWIDTH_OBJ;
 }
+*/
 //     4. 状态同步：
 //         - 使用 PCRpt 消息报告 LSP 状态
 //         - 通过 PCUpd 消息下发路径更新

@@ -1,4 +1,4 @@
-/​**​
+/**
  * DNS Header Definition in P4
  * Domain Name System protocol for name resolution
  * 
@@ -6,15 +6,15 @@
  */
 
 /* DNS Opcode Types */
-enum dns_opcode {
-    QUERY  = 0,     / Standard query
+enum bit<8> dns_opcode {
+    QUERY  = 0,     // Standard query
     IQUERY = 1,    // Inverse query (obsolete)
     STATUS = 2,    // Server status request
     UPDATE = 5     // Dynamic update
 };
 
 /* DNS Response Codes */
-enum dns_rcode {
+enum bit<8> dns_rcode {
     NO_ERROR     = 0,  // No error condition
     FORMAT_ERROR = 1,  // Query format error
     SERV_FAIL    = 2,  // Server failure
@@ -24,7 +24,7 @@ enum dns_rcode {
 };
 
 /* DNS Query Types */
-enum dns_qtype {
+enum bit<8> dns_qtype {
     A = 1,        // IPv4 address
     NS = 2,       // Name server
     CNAME = 5,    // Canonical name
@@ -34,7 +34,7 @@ enum dns_qtype {
     ANY = 255     // All records
 };
 
-/​**​
+/**
  * DNS Header (12 bytes)
  * Fixed header for all DNS messages
  */
@@ -54,43 +54,44 @@ header dns_header {
     bit<16> arcount;  // Additional RRs count
 };
 
-/​**​
+/**
  * DNS Question Section (Variable length)
  * Query parameters
  */
 header dns_question {
-    bit<8>  qname[];   // Domain name (labels)
+    varbit<1024> qname;   // Domain name (labels)
     bit<16> qtype;     // Query type (dns_qtype)
     bit<16> qclass;    // Query class (usually 1=IN)
 };
 
-/​**​
+/**
  * DNS Resource Record (Variable length)
  * Answer/authority/additional records
  */
 header dns_rr {
-    bit<8>  name[];    // Domain name
+    varbit<1024> name;    // Domain name
     bit<16> type;      // RR type (dns_qtype)
     bit<16> class;     // RR class
     bit<32> ttl;       // Time to live
     bit<16> rdlength;  // Resource data length
-    bit<8>  rdata[];   // Resource data
+    varbit<1024> rdata;   // Resource data
 };
 
-/​**​
+/**
  * UDP Transport Header (8 bytes)
  * Standard UDP header for DNS
  */
 header udp_header {
     bit<16> src_port;       // Source port
-    bit<16> dst_port = 53;  // DNS port
+    // bit<16> dst_port = 53;  // (pseudocode: field initializer removed)  // DNS port
     bit<16> length;         // UDP length
     bit<16> checksum;       // UDP checksum
 };
 
-/​**​
+/**
  * P4 Parser Logic for DNS
  */
+/*
 parser dns_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.udp_header);
@@ -127,10 +128,12 @@ parser dns_parser(packet_in pkt, out headers hdr) {
         }
     }
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for DNS
  */
+/*
 control dns_control(inout headers hdr) {
     action process_query() {
         // Handle DNS query
@@ -178,3 +181,4 @@ control dns_control(inout headers hdr) {
         }
     }
 }
+*/

@@ -1,4 +1,4 @@
-/​**​
+/**
  * YANG Model Header Definition in P4
  * YANG 模型头 P4 定义
  * 
@@ -7,7 +7,7 @@
  */
 
 /* YANG Node Types */
-enum yang_node_type {
+enum bit<8> yang_node_type {
     CONTAINER = 0,    // 容器节点
     LIST      = 1,    // 列表节点
     LEAF      = 2,    // 叶子节点
@@ -16,7 +16,7 @@ enum yang_node_type {
     CASE      = 5     // 情况节点
 }
 
-/​**​
+/**
  * YANG Model Header
  * YANG 模型头
  */
@@ -57,7 +57,7 @@ header yang_header {
     bit<16> feature_count;
 }
 
-/​**​
+/**
  * YANG Node Header
  * YANG 节点头
  */
@@ -112,7 +112,7 @@ header yang_node {
     bit<8> presence_flag;
 }
 
-/​**​
+/**
  * YANG Type Header
  * YANG 类型头
  */
@@ -174,7 +174,7 @@ header yang_type {
     bit<8> pattern_count;
 }
 
-/​**​
+/**
  * YANG Container Node
  * YANG 容器节点
  */
@@ -204,7 +204,7 @@ header yang_container {
     bit<16> when_length;
 }
 
-/​**​
+/**
  * YANG List Node
  * YANG 列表节点
  */
@@ -245,7 +245,7 @@ header yang_list {
     bit<8> ordered_by;
 }
 
-/​**​
+/**
  * YANG Leaf Node
  * YANG 叶子节点
  */
@@ -272,7 +272,7 @@ header yang_leaf {
     bit<16> default_length;
 }
 
-/​**​
+/**
  * YANG Transport Header (over XML/JSON)
  * YANG传输头(基于XML/JSON)
  */

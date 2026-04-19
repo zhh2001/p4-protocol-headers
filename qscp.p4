@@ -1,4 +1,4 @@
-/​**​
+/**
  * QSCP Header Definition in P4
  * Quantum-Secure Communication Protocol for post-quantum cryptography
  * 
@@ -7,7 +7,7 @@
  */
 
 /* QSCP Security Modes */
-enum qscp_security_mode {
+enum bit<8> qscp_security_mode {
     KYBER     = 0x1,        // Kyber post-quantum KEM
     DILITHIUM = 0x2,        // Dilithium digital signature
     FALCON    = 0x4,        // Falcon digital signature  
@@ -15,13 +15,13 @@ enum qscp_security_mode {
 };
 
 /* QSCP Key Exchange Types */
-enum qscp_kex_type {
+enum bit<8> qscp_kex_type {
     QSCP_NEWKEYS = 0,      // Initial key establishment
     QSCP_REKEY   = 1,      // Periodic rekeying
     QSCP_UPDATE  = 2       // Key material update
 };
 
-/​**​
+/**
  * QSCP Base Header (16 bytes)
  * Core security parameters
  */
@@ -34,34 +34,34 @@ header qscp_header {
     bit<32> reserved;
 };
 
-/​**​
+/**
  * QSCP Key Exchange (Variable length)
  * Post-quantum key material
  */
 header qscp_kex {
     bit<16> param_id;        // Cryptographic parameter ID
     bit<16> pubkey_len;      // Public key length
-    bit<8>  pubkey[];        // Public key material
+    varbit<1024> pubkey;        // Public key material
     bit<16> ciphertext_len;  // KEM ciphertext length
-    bit<8>  ciphertext[];    // KEM ciphertext
+    varbit<1024> ciphertext;    // KEM ciphertext
     bit<16> sig_len;         // Signature length
-    bit<8>  signature[];     // Digital signature
+    varbit<1024> signature;     // Digital signature
 };
 
-/​**​
+/**
  * QSCP Data Frame (Variable length)
  * Encrypted payload format
  */
 header qscp_data {
     bit<16> iv_len;         // Initialization vector length
-    bit<8>  iv[];           // Initialization vector
+    varbit<1024> iv;           // Initialization vector
     bit<16> auth_tag_len;   // Authentication tag length
-    bit<8>  auth_tag[];     // Authentication tag
+    varbit<1024> auth_tag;     // Authentication tag
     bit<32> payload_len;    // Encrypted payload length
-    bit<8>  payload[];      // Encrypted payload
+    varbit<1024> payload;      // Encrypted payload
 };
 
-/​**​
+/**
  * QSCP Quantum Channel Header (8 bytes)
  * Quantum key distribution parameters
  */
@@ -71,20 +71,21 @@ header qscp_quantum {
     bit<16> key_len;      // Quantum key length (bits)
 };
 
-/​**​
+/**
  * QSCP Transport Header (UDP)
  * Encapsulation for QSCP packets
  */
 header qscp_transport {
     bit<16> src_port;         // Source port (ephemeral)
-    bit<16> dst_port = 4747;  // QSCP well-known port
+    // bit<16> dst_port = 4747;  // (pseudocode: field initializer removed)  // QSCP well-known port
     bit<16> length;           // UDP length
     bit<16> checksum;         // UDP checksum
 };
 
-/​**​
+/**
  * P4 Parser Logic for QSCP
  */
+/*
 parser qscp_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.qscp_transport);
@@ -105,10 +106,12 @@ parser qscp_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for QSCP components...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for QSCP
  */
+/*
 control qscp_control(inout headers hdr) {
     action process_kex() {
         // Process quantum-safe key exchange
@@ -158,3 +161,4 @@ control qscp_control(inout headers hdr) {
         qscp_processing.apply();
     }
 }
+*/

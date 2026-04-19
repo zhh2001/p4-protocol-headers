@@ -62,31 +62,39 @@ const frame_type_t LWAPP_KEEPALIVE = 8w0x5;  // 连接保活
 
 // 关键特性说明：
 //     1. 轻量级封装：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action encapsulate_80211() {
     lwapp_data_t.flags = 8w0x80;  // 标记为 802.11 帧
     lwapp_data_t.timestamp = now();
 }
-//     2. ​AP 自动发现：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+*/
+//     2. AP 自动发现：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action send_discovery() {
     lwapp_t.frame_type = LWAPP_DISCOVERY;
     lwapp_t.c_bit = 1w1;  // 控制消息
 }
+*/
 //     3. 密钥轮换机制：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action update_keys() {
     lwapp_t.frame_type = LWAPP_KEY_UPDATE;
     lwapp_t.k_bit = 1w1;  // 密钥更新标志
 }
+*/
 
 
 // 典型工作流程：
 //     1. 初始化阶段：
 //         - AP 发送广播 Discovery 消息
 //         - 控制器回复单播 Join 响应
-//     2. ​配置阶段：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+//     2. 配置阶段：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+/*
 action push_config() {
     lwapp_t.frame_type = LWAPP_CONFIG;
     lwapp_t.payload = {ssid_config, security_policy};
 }
+*/
 //     3. 数据阶段：
 //         - 本地转发模式：直接传输数据
 //         - 隧道转发模式：通过 LWAPP Data 封装

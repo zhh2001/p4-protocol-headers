@@ -3,7 +3,7 @@
  * IP 安全协议报头 - 提供网络层加密与认证
  * Internet Protocol Security Header
  * Provides network-layer encryption and authentication
- ​**********************************************************/
+ **********************************************************/
 
 header ipsec_t {
     // ---- 通用头部字段 ----
@@ -13,15 +13,15 @@ header ipsec_t {
     // ---- AH (认证头) 特定字段 ----
     bit<16>       ah_length;    // Authentication data length               认证数据长度
     bit<16>       ah_reserved;  // Reserved (must be 0)                     保留字段 (必须为 0)
-    bit<variable> auth_data;    // Authentication data (e.g., HMAC-SHA256)  认证数据 (如 HMAC-SHA256)
+    varbit<256> auth_data;    // Authentication data (e.g., HMAC-SHA256)  认证数据 (如 HMAC-SHA256)
 
     // ---- ESP (封装安全载荷) 特定字段 ----
-    bit<variable> iv;           // Initialization Vector (for encryption)  初始化向量 (加密算法需要)
-    bit<variable> payload;      // Encrypted payload (actual IP packet)    加密载荷 (实际 IP 数据包)
-    bit<variable> padding;      // Padding bytes (block alignment)         填充字节 (满足块加密对齐)
+    varbit<256> iv;           // Initialization Vector (for encryption)  初始化向量 (加密算法需要)
+    varbit<256> payload;      // Encrypted payload (actual IP packet)    加密载荷 (实际 IP 数据包)
+    varbit<256> padding;      // Padding bytes (block alignment)         填充字节 (满足块加密对齐)
     bit<8>        pad_length;   // Padding length                          填充长度
     bit<8>        next_header;  // Next header protocol (e.g., TCP=6)      下一头部协议 (如 TCP=6)
-    bit<variable> esp_auth;     // ESP authentication data (optional)      ESP 认证数据 (可选)
+    varbit<256> esp_auth;     // ESP authentication data (optional)      ESP 认证数据 (可选)
 
     // ---- IKEv2 (密钥交换) 特定字段 ----
     bit<8>    ike_initiator;  // Initiator SPI (first 8 bytes)      发起方 SPI (前 8 字节)

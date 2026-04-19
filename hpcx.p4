@@ -1,4 +1,4 @@
-/​**​
+/**
  * HPC-X Header Definition in P4
  * High Performance Computing communication protocol for supercomputing clusters
  * 
@@ -7,7 +7,7 @@
  */
 
 /* HPC-X Message Types */
-enum hpcx_msg_type {
+enum bit<8> hpcx_msg_type {
     RDMA_WRITE = 0x01,        // RDMA write operation
     RDMA_READ = 0x02,         // RDMA read request
     ATOMIC_CMP_SWAP = 0x03,   // Atomic compare-and-swap
@@ -18,14 +18,14 @@ enum hpcx_msg_type {
 };
 
 /* HPC-X Transport Types */
-enum hpcx_transport {
+enum bit<8> hpcx_transport {
     INFINIBAND = 0,        // Native InfiniBand
     ROCE = 1,              // RDMA over Converged Ethernet
     TCP_ACCEL = 2          // Accelerated TCP
 };
 
 /* HPC-X Memory Protection Flags */
-enum hpcx_mem_flags {
+enum bit<8> hpcx_mem_flags {
     LOCAL_READ   = 0x1,   // Local read permission
     LOCAL_WRITE  = 0x2,   // Local write permission
     REMOTE_READ  = 0x4,   // Remote read permission
@@ -33,7 +33,7 @@ enum hpcx_mem_flags {
     ATOMIC       = 0x10   // Atomic operations allowed
 };
 
-/​**​
+/**
  * HPC-X Base Header (16 bytes)
  * Common header for all HPC-X operations
  */
@@ -46,7 +46,7 @@ header hpcx_header {
     bit<32> transaction_id;  // Unique transaction ID
 };
 
-/​**​
+/**
  * HPC-X RDMA Header (24 bytes)
  * RDMA operation parameters
  */
@@ -58,7 +58,7 @@ header hpcx_rdma {
     bit<32> lkey;          // Local memory key
 };
 
-/​**​
+/**
  * HPC-X Atomic Header (24 bytes)
  * Atomic operation parameters
  */
@@ -71,7 +71,7 @@ header hpcx_atomic {
     bit<24> reserved;
 };
 
-/​**​
+/**
  * HPC-X Collective Header (32 bytes)
  * Collective operation metadata
  */
@@ -85,11 +85,11 @@ header hpcx_collective {
     bit<32> reserved;
 };
 
-/​**​
+/**
  * HPC-X Transport Header (16 bytes)
  * Transport-specific information
  */
-header hpcx_transport {
+header hpcx_transport_t {
     bit<8>  transport_type;  // Transport type (hpcx_transport)
     bit<8>  priority;        // Message priority
     bit<16> src_lid;         // Source LID (InfiniBand)
@@ -101,9 +101,10 @@ header hpcx_transport {
     bit<8>  reserved;
 };
 
-/​**​
+/**
  * P4 Parser Logic for HPC-X
  */
+/*
 parser hpcx_parser(packet_in pkt, out headers hdr) {
     state start {
         pkt.extract(hdr.hpcx_header);
@@ -127,10 +128,12 @@ parser hpcx_parser(packet_in pkt, out headers hdr) {
     
     // Additional parse states for other message types...
 }
+*/
 
-/​**​
+/**
  * P4 Match-Action Pipeline for HPC-X
  */
+/*
 control hpcx_control(inout headers hdr) {
     action process_rdma_write() {
         // Process RDMA write operation
@@ -178,3 +181,4 @@ control hpcx_control(inout headers hdr) {
         hpcx_processing.apply();
     }
 }
+*/
