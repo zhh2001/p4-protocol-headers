@@ -1,3 +1,6 @@
+#ifndef P4_PROTOCOL_HEADERS_IPV4_P4
+#define P4_PROTOCOL_HEADERS_IPV4_P4
+
 /**
  * IPv4 Header Definition in P4
  * Internet Protocol version 4 header for packet routing
@@ -33,54 +36,50 @@ enum bit<8> ip_precedence {
  * Standard IPv4 header with options
  */
 header ipv4_header {
-    // bit<4>  version = 4;  // (pseudocode: field initializer removed)    // Version (4)
-    bit<4>  ihl;            // Internet Header Length (in 32-bit words)
-    bit<3>  precedence;     // Precedence (ip_precedence)
-    bit<1>  delay;          // Delay (0=normal, 1=low)
-    bit<1>  throughput;     // Throughput (0=normal, 1=high)
-    bit<1>  reliability;    // Reliability (0=normal, 1=high)
-    bit<2>  unused;         // Unused bits
-    bit<8>  dscp;            // Differentiated Services Code Point
-    bit<16> total_length;    // Total packet length (bytes)
-    bit<16> identification;  // Packet identification
-    bit<1>  reserved;    // Reserved flag
-    bit<1>  df;          // Don't Fragment flag
-    bit<1>  mf;          // More Fragments flag
-    bit<13> fragment_offset;  // Fragment offset (in 8-byte units)
-    bit<8>  ttl;       // Time To Live
-    bit<8>  protocol;  // Upper layer protocol (ip_protocol)
-    bit<16> header_checksum; // Header checksum
-    bit<32> src_addr;   // Source IP address
-    bit<32> dst_addr;   // Destination IP address
-    varbit<1024> options;  // Optional fields (variable length)
-};
-
-/**
- * Ethernet Header (14 bytes)
- * Ethernet encapsulation for IPv4
- */
-header ethernet_header {
-    bit<48> dst_mac;   // Destination MAC
-    bit<48> src_mac;   // Source MAC
-    // bit<16> ether_type = 0x0800;  // (pseudocode: field initializer removed)  // IPv4 type
+    bit<4>  version;          // IP version (4)
+    bit<4>  ihl;              // Header length in 32-bit words (5-15)
+    bit<6>  dscp;             // Differentiated Services Code Point
+    bit<2>  ecn;              // Explicit Congestion Notification
+    bit<16> total_length;     // Total packet length (bytes)
+    bit<16> identification;   // Packet identification
+    bit<1>  reserved;         // Reserved flag
+    bit<1>  df;               // Don't Fragment flag
+    bit<1>  mf;               // More Fragments flag
+    bit<13> fragment_offset;  // Fragment offset in 8-byte units
+    bit<8>  ttl;              // Time To Live
+    bit<8>  protocol;         // Upper layer protocol (ip_protocol)
+    bit<16> header_checksum;  // Header checksum
+    bit<32> src_addr;         // Source IP address
+    bit<32> dst_addr;         // Destination IP address
+    varbit<320> options;      // Options and padding (0-40 bytes)
 };
 
 /**
  * P4 Parser Logic for IPv4
+ * The packet cursor must point to the start of the IPv4 header.
+ * Include ethernet.p4 separately when parsing Ethernet frames.
  */
 /*
-parser ipv4_parser(packet_in pkt, out headers hdr) {
+parser ipv4_parser(packet_in pkt, inout headers hdr) {
     state start {
-        pkt.extract(hdr.ethernet_header);
-        transition parse_ipv4;
+        bit<8> version_ihl;
+        version_ihl = pkt.lookahead<bit<8>>();
+        transition select(version_ihl[7:4], version_ihl[3:0]) {
+            (4, 5..15): parse_ipv4;
+            default: reject;
+        }
     }
     
     state parse_ipv4 {
-        pkt.extract(hdr.ipv4_header);
+        bit<8> version_ihl;
+        bit<32> options_length;
+        version_ihl = pkt.lookahead<bit<8>>();
+        options_length = ((bit<32>)version_ihl[3:0] - 5) * 32;
+        pkt.extract(hdr.ipv4_header, options_length);
         transition select(hdr.ipv4_header.protocol) {
-            TCP: parse_tcp;
-            UDP: parse_udp;
-            ICMP: parse_icmp;
+            ip_protocol.TCP: parse_tcp;
+            ip_protocol.UDP: parse_udp;
+            ip_protocol.ICMP: parse_icmp;
             default: accept;
         }
     }
@@ -140,3 +139,5 @@ control ipv4_control(inout headers hdr) {
     }
 }
 */
+
+#endif
