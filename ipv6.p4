@@ -1,3 +1,6 @@
+#ifndef P4_PROTOCOL_HEADERS_IPV6_P4
+#define P4_PROTOCOL_HEADERS_IPV6_P4
+
 /**
  * IPv6 Header Definition in P4
  * Internet Protocol version 6 header for next-generation networking
@@ -34,7 +37,7 @@ enum bit<8> ipv6_traffic_class {
  * Fixed-length mandatory header
  */
 header ipv6_header {
-    // bit<4>   version = 6;  // (pseudocode: field initializer removed)     // Version (6)
+    bit<4>   version;         // IP version (6)
     bit<8>   traffic_class;   // Traffic class (ipv6_traffic_class)
     bit<20>  flow_label;      // Flow label
     bit<16>  payload_length;  // Extension headers + payload length
@@ -49,9 +52,9 @@ header ipv6_header {
  * Optional extension header
  */
 header ipv6_hop_options {
-    bit<8> next_header;    // Next header type
-    bit<8> hdr_ext_len;    // Header extension length (in 8-byte units)
-    varbit<1024> options;      // Variable-length options
+    bit<8> next_header;      // Next header type
+    bit<8> hdr_ext_len;      // Header length in 8-byte units, excluding the first 8 bytes
+    varbit<16368> options;   // Options and padding (6-2046 bytes)
 };
 
 /**
@@ -61,59 +64,67 @@ header ipv6_hop_options {
 header ipv6_fragment {
     bit<8>  next_header;     // Next header type
     bit<8>  reserved;        // Reserved field
-    bit<16> frag_offset;     // Fragment offset (in 8-byte units)
-    bit<1>  reserved2;       // Reserved
+    bit<13> frag_offset;     // Fragment offset (in 8-byte units)
+    bit<2>  reserved2;       // Reserved
     bit<1>  m_flag;          // More fragments flag
-    bit<30> identification;  // Packet identifier
-};
-
-/**
- * Ethernet Header (14 bytes)
- * Ethernet encapsulation for IPv6
- */
-header ethernet_header {
-    bit<48> dst_mac;   // Destination MAC
-    bit<48> src_mac;   // Source MAC
-    // bit<16> ether_type = 0x86DD;  // (pseudocode: field initializer removed)  // IPv6 type
+    bit<32> identification;  // Packet identifier
 };
 
 /**
  * P4 Parser Logic for IPv6
+ * The packet cursor must point to the start of the IPv6 header.
+ * This example handles one Hop-by-Hop header and one Fragment header.
+ * Include ethernet.p4 separately when parsing Ethernet frames.
  */
 /*
-parser ipv6_parser(packet_in pkt, out headers hdr) {
+parser ipv6_parser(packet_in pkt, inout headers hdr) {
+    bit<8> next_header;
+
     state start {
-        pkt.extract(hdr.ethernet_header);
-        transition parse_ipv6;
+        transition select(pkt.lookahead<bit<4>>()) {
+            6: parse_ipv6;
+            default: reject;
+        }
     }
     
     state parse_ipv6 {
         pkt.extract(hdr.ipv6_header);
-        transition select(hdr.ipv6_header.next_header) {
-            HOP_BY_HOP: parse_hop_options;
-            FRAGMENT: parse_fragment;
+        next_header = hdr.ipv6_header.next_header;
+        transition select(next_header) {
+            ipv6_next_header.HOP_BY_HOP: parse_hop_options;
+            ipv6_next_header.FRAGMENT: parse_fragment;
             default: parse_upper_layer;
         }
     }
     
     state parse_hop_options {
-        pkt.extract(hdr.ipv6_hop_options);
-        transition select(hdr.ipv6_hop_options.next_header) {
-            FRAGMENT: parse_fragment;
+        bit<16> next_header_length;
+        bit<32> options_length;
+        next_header_length = pkt.lookahead<bit<16>>();
+        options_length = ((bit<32>)next_header_length[7:0] + 1) * 64 - 16;
+        pkt.extract(hdr.ipv6_hop_options, options_length);
+        next_header = hdr.ipv6_hop_options.next_header;
+        transition select(next_header) {
+            ipv6_next_header.FRAGMENT: parse_fragment;
             default: parse_upper_layer;
         }
     }
     
     state parse_fragment {
         pkt.extract(hdr.ipv6_fragment);
-        transition parse_upper_layer;
+        next_header = hdr.ipv6_fragment.next_header;
+        // Only the first fragment contains the start of the upper-layer header.
+        transition select(hdr.ipv6_fragment.frag_offset) {
+            0: parse_upper_layer;
+            default: accept;
+        }
     }
     
     state parse_upper_layer {
-        transition select(hdr.ipv6_header.next_header) {
-            TCP: parse_tcp;
-            UDP: parse_udp;
-            ICMPv6: parse_icmpv6;
+        transition select(next_header) {
+            ipv6_next_header.TCP: parse_tcp;
+            ipv6_next_header.UDP: parse_udp;
+            ipv6_next_header.ICMPv6: parse_icmpv6;
             default: accept;
         }
     }
@@ -173,3 +184,5 @@ control ipv6_control(inout headers hdr) {
     }
 }
 */
+
+#endif
