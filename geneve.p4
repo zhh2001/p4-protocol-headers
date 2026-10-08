@@ -1,111 +1,186 @@
-/**********************************************************
- * GENEVE Header (RFC 8926)                               
- * 通用网络虚拟化封装报头 - 新一代数据中心 overlay 协议        
- * Generic Network Virtualization Encapsulation Header     
- * Next-gen overlay protocol for data centers              
- **********************************************************/
+#ifndef P4_PROTOCOL_HEADERS_GENEVE_P4
+#define P4_PROTOCOL_HEADERS_GENEVE_P4
 
-typedef bit<16> protocol_t;
-typedef bit<16> opt_class_t;
-typedef bit<8>  opt_type_t;
+/**
+ * Geneve Header Definition in P4 (RFC 8926)
+ * 通用网络虚拟化封装报头
+ * Geneve carries an EtherType payload over UDP, normally on port 6081.
+ */
 
+typedef bit<16> geneve_protocol_t;
+typedef bit<16> geneve_opt_class_t;
+typedef bit<7>  geneve_opt_type_t;  // Type value without the critical bit
+
+const bit<16> GENEVE_UDP_PORT = 6081;
+
+/**
+ * Geneve Base Header (8 bytes)
+ * 基础报头，选项长度以 4 字节为单位，不含基础报头
+ */
 header geneve_t {
-    // 基础头部 (64 bits)
-    // Base header (64 bits)
-    bit<2>     version;        // 版本号（固定为 0）
-    bit<6>     opt_len;        // 选项长度（单位 4 字节）
-    bit<1>     oam_pkt;        // OAM 报文标志
-    bit<1>     critical_opt;   // 关键选项存在标志
-    bit<24>    vni;            // 虚拟网络标识符
-    bit<8>     reserved;       // 保留字段
-    protocol_t protocol;       // 内层协议类型： 0x6558=以太网 0x0800=IPv4
+    bit<2>  version;       // Version 0
+    bit<6>  opt_len;       // Total options length in 4-byte units (0-63)
+    bit<1>  oam_pkt;       // O: control message
+    bit<1>  critical_opt;  // C: at least one critical option
+    bit<6>  reserved1;     // Transmit zero, ignore on receipt
+    geneve_protocol_t protocol;
+    bit<24> vni;           // Virtual Network Identifier
+    bit<8>  reserved;      // Transmit zero, ignore on receipt
+};
 
-    // 可变长选项头 (0-512 bits)
-    // Variable options (RFC 8926)
-    // geneve_option_t[16] options;  // (removed: nested header reference)
-}
-
-// Geneve 选项结构
+/**
+ * Geneve Option (4-byte prefix and 0-124 bytes of data)
+ * 选项的关键标志属于 Type 字段，长度不含 4 字节选项前缀
+ */
 header geneve_option_t {
-    opt_class_t opt_class;      // 选项类别
-    opt_type_t  opt_type;       // 选项类型
-    bit<1>      critical;       // 关键选项标志
-    bit<7>      reserved;       // 保留位
-    bit<8>      opt_length;     // 选项长度（不含头部）
-    varbit<512> opt_data;       // 选项值
-}
+    geneve_opt_class_t opt_class;
+    bit<1> critical;             // High bit of the 8-bit Type field
+    geneve_opt_type_t opt_type;
+    bit<3> reserved;             // Transmit zero, ignore on receipt
+    bit<5> opt_length;           // Data length in 4-byte units (0-31)
+    varbit<992> opt_data;        // Up to 31 * 4 bytes
+};
 
-// 常用选项常量
-const opt_class_t GENEVE_CLASS_NVO3 = 0x0102;  // 网络虚拟化选项
-const opt_class_t GENEVE_CLASS_NSH  = 0x0103;  // 服务链集成
-const opt_type_t  GENEVE_TYPE_TTL   = 0x01;    // TTL 控制选项
-const opt_type_t  GENEVE_TYPE_ECMP  = 0x02;    // 负载均衡哈希
+/* Registered option classes. Each class owner defines its option types. */
+const geneve_opt_class_t GENEVE_CLASS_OVN = 0x0102;
+const geneve_opt_class_t GENEVE_CLASS_INT = 0x0103;
 
-// 协议类型扩展
-const protocol_t GENEVE_PROTO_NSH   = 0x894F;  // NSH 封装
-const protocol_t GENEVE_PROTO_MPLS  = 0x8847;  // MPLS 封装
+/* Payload EtherTypes */
+const geneve_protocol_t GENEVE_PROTO_ETHERNET = 0x6558;
+const geneve_protocol_t GENEVE_PROTO_IPV4     = 0x0800;
+const geneve_protocol_t GENEVE_PROTO_IPV6     = 0x86DD;
+const geneve_protocol_t GENEVE_PROTO_NSH      = 0x894F;
+const geneve_protocol_t GENEVE_PROTO_MPLS     = 0x8847;
 
-
-/* ====== 关键特性说明 Start ====== */
-
-// Example 1: 多租户隔离 (Pseudocode)
+/**
+ * P4 Parser Logic for Geneve Tunnel Endpoints
+ * The packet cursor must point to the Geneve base header.
+ * Pass the UDP payload length as geneve_length after validating UDP length.
+ * The headers struct contains geneve_t geneve and geneve_option_t[63] options.
+ * The option stack must be empty on entry. Each option consumes at least
+ * 4 bytes, so 63 entries cover the maximum 252-byte option area.
+ *
+ * This example checks TLV boundaries and preserves unknown noncritical options.
+ * It has no option-specific handlers and rejects packets with critical options.
+ * Control messages keep their payload opaque for delivery to a control port.
+ * The enclosing pipeline handles parser errors, IP/UDP bounds and checksums.
+ * Transit devices need a separate path that does not reject critical options
+ * or unknown versions and does not alter Geneve headers or options.
+ */
 /*
-action set_vni() {
-    geneve_t.vni = tenant_id << 8 | vlan_id;  // 24 位虚拟网络 ID
-}
-*/
+parser geneve_parser(packet_in pkt, inout headers hdr,
+                     in bit<16> geneve_length) {
+    bit<16> options_left;
+    bit<32> option_prefix;
+    bit<16> option_bytes;
+    bit<32> option_data_bits;
 
-// Example 2: 动态选项处理 (Pseudocode)
-/*
-action add_ecmp_option() {
-    geneve_option_t.opt_class = GENEVE_CLASS_NVO3;
-    geneve_option_t.opt_type = GENEVE_TYPE_ECMP;
-    geneve_option_t.opt_data = hash(ipv4.src, ipv4.dst);
-}
-*/
-
-// Example 3: 服务链集成 (Pseudocode)
-/*
-action encapsulate_nsh() {
-    geneve_t.protocol = GENEVE_PROTO_NSH;
-    geneve_t.options[0].opt_class = GENEVE_CLASS_NSH;
-}
-*/
-
-/* ====== 关键特性说明 End ====== */
-
-
-// 典型工作流程：
-//     1. 虚拟网络封装：( ↓↓↓ Example, Pseudocode ↓↓↓ )
-/*
-table vxlan_to_geneve {
-    key = {
-        vxlan.vni: exact;
+    state start {
+        verify(geneve_length >= 8, error.HeaderTooShort);
+        pkt.extract(hdr.geneve);
+        verify(hdr.geneve.version == 0, error.NoMatch);
+        verify(hdr.geneve.critical_opt == 0, error.NoMatch);
+        options_left = (bit<16>) hdr.geneve.opt_len * 4;
+        verify(options_left + 8 <= geneve_length, error.HeaderTooShort);
+        transition check_options;
     }
-    actions = {
-        geneve_encap;
-        drop;
+
+    state check_options {
+        transition select(options_left) {
+            0: check_payload;
+            default: parse_option;
+        }
     }
-    size = 4096;
+
+    state parse_option {
+        option_prefix = pkt.lookahead<bit<32>>();
+        option_bytes = ((bit<16>) option_prefix[4:0] + 1) * 4;
+        verify(option_bytes <= options_left, error.HeaderTooShort);
+        verify(option_prefix[15:15] == 0, error.NoMatch);
+        option_data_bits = (bit<32>) option_prefix[4:0] * 32;
+        pkt.extract(hdr.options.next, option_data_bits);
+        options_left = options_left - option_bytes;
+        transition check_options;
+    }
+
+    state check_payload {
+        transition select(hdr.geneve.oam_pkt) {
+            1: accept;
+            default: parse_payload;
+        }
+    }
+
+    state parse_payload {
+        transition select(hdr.geneve.protocol) {
+            GENEVE_PROTO_ETHERNET: parse_inner_ethernet;
+            GENEVE_PROTO_IPV4: parse_inner_ipv4;
+            GENEVE_PROTO_IPV6: parse_inner_ipv6;
+            GENEVE_PROTO_NSH: parse_nsh;
+            GENEVE_PROTO_MPLS: parse_mpls;
+            default: accept;
+        }
+    }
+
+    // Add the payload states with bounds checks against geneve_length.
 }
 */
-//     2. 选项处理流水线：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+
+/**
+ * P4 Match-Action Pipeline for Geneve Tunnel Endpoints (v1model)
+ * Select data ports by VNI and payload protocol.
+ * Configure send_control with the target's control port.
+ * The enclosing pipeline handles decapsulation and egress framing.
+ */
 /*
-parser geneve_option_parser {
-    extract(geneve_t.options);
-    while (options_left > 0) {
-        extract(current_option);
-        process_option(current_option);
+control geneve_control(inout headers hdr,
+                       inout standard_metadata_t standard_metadata) {
+    action forward_data(bit<9> port) {
+        standard_metadata.egress_spec = port;
+    }
+
+    action send_control(bit<9> port) {
+        standard_metadata.egress_spec = port;
+    }
+
+    action drop_geneve() {
+        mark_to_drop(standard_metadata);
+    }
+
+    table geneve_forwarding {
+        key = {
+            hdr.geneve.vni: exact;
+            hdr.geneve.protocol: exact;
+        }
+        actions = {
+            forward_data;
+            drop_geneve;
+            NoAction;
+        }
+        default_action = drop_geneve();
+    }
+
+    table geneve_control_messages {
+        key = {
+            hdr.geneve.vni: exact;
+        }
+        actions = {
+            send_control;
+            drop_geneve;
+        }
+        default_action = drop_geneve();
+    }
+
+    apply {
+        if (standard_metadata.parser_error != error.NoError
+            || !hdr.geneve.isValid()) {
+            drop_geneve();
+        } else if (hdr.geneve.oam_pkt == 1) {
+            geneve_control_messages.apply();
+        } else {
+            geneve_forwarding.apply();
+        }
     }
 }
 */
-//     3. 跨域传输：
-//         - 基于 VNI 的虚拟网络路由
-//         - 使用选项携带 QoS 策略信息
-//     4. 终端解封装：( ↓↓↓ Example, Pseudocode ↓↓↓ )
-/*
-action terminate_geneve() {
-    geneve_t.setInvalid();
-    inner_ethernet.setValid();
-}
-*/
+
+#endif
