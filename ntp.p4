@@ -1,186 +1,202 @@
+#ifndef P4_PROTOCOL_HEADERS_NTP_P4
+#define P4_PROTOCOL_HEADERS_NTP_P4
+
 /**
- * NTP Header Definition in P4
- * Network Time Protocol for clock synchronization
- * 
- * Note: NTP provides clock synchronization between computer systems over packet-switched networks
- *       (UDP port 123)
+ * Network Time Protocol (RFC 5905)
+ * 网络时间协议，时间报文使用 UDP，服务端端口通常为 123
  */
+const bit<16> NTP_UDP_PORT = 123;
+typedef bit<64> ntp_timestamp_t;
 
-/* NTP Modes */
-enum bit<8> ntp_mode {
-    RESERVED          = 0,  // Reserved
-    SYMMETRIC_ACTIVE  = 1,  // Symmetric active
-    SYMMETRIC_PASSIVE = 2,  // Symmetric passive
-    CLIENT            = 3,  // Client mode
-    SERVER            = 4,  // Server mode
-    BROADCAST         = 5,  // Broadcast mode
-    CONTROL           = 6,  // NTP control message
-    PRIVATE           = 7   // Private use
+/* Wire modes. Control and private messages use different packet formats. */
+enum bit<3> ntp_mode {
+    RESERVED          = 0,
+    SYMMETRIC_ACTIVE  = 1,
+    SYMMETRIC_PASSIVE = 2,
+    CLIENT            = 3,
+    SERVER            = 4,
+    BROADCAST         = 5,
+    CONTROL           = 6,
+    PRIVATE           = 7
 };
 
-/* NTP Leap Indicator */
-enum bit<8> ntp_leap {
-    NO_WARNING  = 0,         // No leap second warning
-    LAST_MIN_61 = 1,         // Last minute has 61 seconds
-    LAST_MIN_59 = 2,         // Last minute has 59 seconds
-    ALARM       = 3          // Clock not synchronized
+enum bit<2> ntp_leap {
+    NO_WARNING  = 0,
+    LAST_MIN_61 = 1,
+    LAST_MIN_59 = 2,
+    ALARM       = 3
 };
 
-/* NTP Version Numbers */
-enum bit<8> ntp_version {
-    NTPv3 = 3,        // NTP version 3
-    NTPv4 = 4         // NTP version 4
+enum bit<3> ntp_version {
+    NTPv3 = 3,
+    NTPv4 = 4
 };
 
 /**
- * NTP Timestamp Format (64 bits)
- * NTP timestamp representation
+ * Timestamp View (8 bytes)
+ * Seconds are relative to 1900-01-01 and wrap every 2^32 seconds. The era is
+ * not transmitted. Fraction is in units of 2^-32 seconds. The application
+ * resolves the era and interprets timestamp differences.
  */
 header ntp_timestamp {
-    bit<32> seconds;   // Seconds since Jan 1, 1900
-    bit<32> fraction;  // Fractional seconds
+    bit<32> seconds;
+    bit<32> fraction;
 };
 
 /**
- * NTP Header (48 bytes)
- * Basic NTP message header
+ * NTP Time Header (48 bytes, modes 1-5)
+ * 固定时间报头，四个时间戳直接作为 64 位字段存储
+ * The destination timestamp is recorded locally on receipt and is not a
+ * fifth wire timestamp. Root fields keep their 16.16-second wire encoding.
  */
 header ntp_header {
-    bit<2> leap;                     // Leap indicator (ntp_leap)
-    bit<3> version;                  // NTP version (ntp_version)
-    bit<3> mode;                     // Mode (ntp_mode)
-    bit<8> stratum;                  // Stratum level (1=primary, 2-15=secondary)
-    bit<8> poll;                     // Poll interval (log2 seconds)
-    bit<8> precision;                // Clock precision (log2 seconds)
-    bit<32> root_delay;              // Roundtrip delay to reference clock
-    bit<32> root_dispersion;         // Dispersion to reference clock
-    bit<32> reference_id;            // Reference clock identifier
-    // ntp_timestamp ref_timestamp;     // Reference timestamp  // (removed: nested header reference)
-    // ntp_timestamp orig_timestamp;    // Originate timestamp  // (removed: nested header reference)
-    // ntp_timestamp recv_timestamp;    // Receive timestamp  // (removed: nested header reference)
-    // ntp_timestamp trans_timestamp;   // Transmit timestamp  // (removed: nested header reference)
+    bit<2>          leap;
+    bit<3>          version;
+    bit<3>          mode;
+    bit<8>          stratum;          // 0: kiss code, 1: primary, 16: unsynchronized
+    int<8>          poll;             // Signed log2 seconds
+    int<8>          precision;        // Signed log2 seconds
+    bit<32>         root_delay;
+    bit<32>         root_dispersion;
+    bit<32>         reference_id;     // Interpretation depends on stratum/version
+    ntp_timestamp_t ref_timestamp;
+    ntp_timestamp_t orig_timestamp;
+    ntp_timestamp_t recv_timestamp;
+    ntp_timestamp_t trans_timestamp;
 };
 
 /**
- * NTP Extension Fields
- * Optional extension fields
+ * NTPv4 Extension Field (RFC 7822)
+ * Length includes the 4-byte prefix, value and padding, and is a multiple of
+ * four. Generic extensions are at least 16 bytes. Without a trailing MAC,
+ * the final extension is at least 28 bytes. Extension specifications can
+ * define their own length rules, as NTS does in RFC 8915.
+ * The capacity covers the maximum 65532-byte field, excluding its prefix.
+ * Check the length, packet bounds and field-specific rules before extracting
+ * (length - 4) * 8 variable bits. Value includes any padding.
  */
 header ntp_extension {
-    bit<16> field_type;    // Extension field type
-    bit<16> length;        // Length of extension
-    varbit<1024> value;       // Extension value (variable length)
+    bit<16>       field_type;
+    bit<16>       length;
+    varbit<524224> value;
 };
 
 /**
- * NTP Authentication (20 bytes)
- * Optional authentication
+ * Traditional NTP MAC (RFC 5905, RFC 7822)
+ * A 32-bit Key ID followed by a 16- or 20-byte digest. There is no digest
+ * length field on the wire. Obtain the algorithm and digest length from the
+ * association configuration before extracting the variable bits.
+ * A crypto-NAK consists only of Key ID zero, with zero digest bits.
+ * NTS authentication uses an extension field, not this traditional MAC.
  */
 header ntp_auth {
-    bit<16> key_id;       // Key identifier
-    bit<16> digest_len;   // Digest length
-    varbit<1024> digest;     // Message digest (variable length)
+    bit<32>     key_id;
+    varbit<160> digest;
 };
 
-/**
- * NTP Kiss-o'-Death Codes
- * Special stratum 0 messages
- */
-header ntp_kod {
-    bit<32> code;       // ASCII KoD code
-    varbit<1024> message;     // Optional message
-};
+// KoD codes occupy reference_id in a stratum-zero time packet.
+// They do not add a header or a text message after the four timestamps.
+const bit<32> NTP_KOD_DENY = 0x44454E59;
+const bit<32> NTP_KOD_RATE = 0x52415445;
+const bit<32> NTP_KOD_RSTR = 0x52535452;
+const bit<32> NTP_KOD_STEP = 0x53544550;
 
-/**
- * NTP Transport Header (UDP)
- */
-header ntp_transport {
-    bit<16> source_port;      // Source port (typically ephemeral)
-    // bit<16> dest_port = 123;  // (pseudocode: field initializer removed)  // Destination port (123)
-    bit<16> length;           // UDP length
-    bit<16> checksum;         // UDP checksum
+struct ntp_metadata_t {
+    bit<3>  version;
+    bit<3>  mode;
+    bit<16> opaque_length;
 };
 
 /**
  * P4 Parser Logic for NTP
+ * The packet cursor points to the first NTP byte. The caller selects traffic
+ * by UDP ports or an existing association and passes the validated UDP payload
+ * byte count as ntp_length. Include udp.p4 separately for transport parsing.
+ * The headers struct contains ntp_header ntp_header. Metadata contains
+ * ntp_metadata_t ntp. This example parses NTPv3/v4 time packets in modes 1-5.
+ *
+ * Control and private packets stay entirely opaque for their own handlers.
+ * Those handlers validate their version and format. Mode zero is reserved.
+ * Extension fields and MACs after a time header also stay opaque. Their
+ * boundaries cannot be determined just from the NTP version. opaque_length
+ * counts unparsed bytes within UDP, excluding IP or Ethernet padding.
+ *
+ * The enclosing pipeline handles parser errors, IP/UDP bounds, fragmentation,
+ * checksums, association state, timestamp checks and authentication. A parsed
+ * header alone does not establish that a time sample is valid. KoD handling,
+ * responses and clock adjustment belong to the NTP application and time source.
  */
 /*
-parser ntp_parser(packet_in pkt, out headers hdr) {
+parser ntp_parser(packet_in pkt, inout headers hdr, inout metadata meta,
+                  in bit<16> ntp_length) {
+    bit<8> first_octet;
+
     state start {
-        pkt.extract(hdr.ntp_transport);
-        transition select(hdr.ntp_transport.dest_port) {
-            123: parse_ntp;
-            default: accept;
+        hdr.ntp_header.setInvalid();
+        meta.ntp.version = 0;
+        meta.ntp.mode = 0;
+        meta.ntp.opaque_length = 0;
+        verify(ntp_length >= 1, error.HeaderTooShort);
+        first_octet = pkt.lookahead<bit<8>>();
+        meta.ntp.version = first_octet[5:3];
+        meta.ntp.mode = first_octet[2:0];
+        meta.ntp.opaque_length = ntp_length;
+        verify(meta.ntp.mode != 0, error.NoMatch);
+        transition select(meta.ntp.mode) {
+            6: accept;
+            7: accept;
+            default: parse_time;
         }
     }
-    
-    state parse_ntp {
+
+    state parse_time {
+        verify(meta.ntp.version == 3 || meta.ntp.version == 4, error.NoMatch);
+        verify(ntp_length >= 48, error.HeaderTooShort);
         pkt.extract(hdr.ntp_header);
-        transition select(hdr.ntp_header.mode) {
-            CONTROL: parse_ntp_control;
-            BROADCAST: parse_ntp_broadcast;
-            default: parse_ntp_standard;
-        }
+        meta.ntp.opaque_length = ntp_length - 48;
+        transition accept;
     }
-    
-    state parse_ntp_standard {
-        // Check for extensions or authentication
-        if (hdr.ntp_header.version == NTPv4) {
-            transition parse_ntp_extensions;
-        } else {
-            transition accept;
-        }
-    }
-    
-    // Additional parse states for NTP variants...
 }
 */
 
 /**
- * P4 Match-Action Pipeline for NTP
+ * P4 Match-Action Pipeline for NTP (v1model)
+ * Select configured handler ports by version and mode. Packets stay intact,
+ * including timestamps, KoD reference IDs and any authentication bytes.
+ * Time, control and private handlers perform their own protocol validation.
  */
 /*
-control ntp_control(inout headers hdr) {
-    action process_client_request() {
-        // Process NTP client request
-        hdr.ntp_header.mode = SERVER;
-        hdr.ntp_header.recv_timestamp = current_time();
-        hdr.ntp_header.trans_timestamp = current_time();
-        hdr.ntp_header.stratum = local_stratum;
-        hdr.ntp_transport.dst_ip = hdr.ntp_transport.src_ip;
-        hdr.ntp_header.checksum = calculate_checksum();
+control ntp_control(inout headers hdr, inout metadata meta,
+                    inout standard_metadata_t standard_metadata) {
+    action send_ntp(bit<9> port) {
+        standard_metadata.egress_spec = port;
     }
-    
-    action adjust_clock_offset() {
-        // Calculate clock offset from timestamps
-        time_delay = (hdr.ntp_header.recv_timestamp - hdr.ntp_header.orig_timestamp) + (hdr.ntp_header.trans_timestamp - current_time());
-        time_offset = (hdr.ntp_header.recv_timestamp - hdr.ntp_header.orig_timestamp) - (hdr.ntp_header.trans_timestamp - current_time());
-        apply_clock_adjustment(time_offset / 2);
+
+    action drop_ntp() {
+        mark_to_drop(standard_metadata);
     }
-    
-    action send_kiss_code(code) {
-        // Send KoD message
-        hdr.ntp_header.stratum = 0;
-        hdr.ntp_kod.code = code;
-        hdr.ntp_header.mode = SERVER;
-        hdr.ntp_transport.dst_ip = hdr.ntp_transport.src_ip;
-    }
-    
-    table ntp_processing {
+
+    table ntp_handlers {
         key = {
-            hdr.ntp_header.mode: exact;
-            hdr.ntp_header.stratum: exact;
+            meta.ntp.version: exact;
+            meta.ntp.mode: exact;
         }
         actions = {
-            process_client_request;
-            adjust_clock_offset;
-            send_kiss_code;
-            NoAction;
+            send_ntp;
+            drop_ntp;
         }
-        default_action = NoAction;
+        default_action = drop_ntp();
     }
-    
+
     apply {
-        ntp_processing.apply();
+        if (standard_metadata.parser_error != error.NoError
+            || meta.ntp.mode == 0) {
+            drop_ntp();
+        } else {
+            ntp_handlers.apply();
+        }
     }
 }
 */
+
+#endif // P4_PROTOCOL_HEADERS_NTP_P4
