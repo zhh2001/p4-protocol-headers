@@ -1,107 +1,204 @@
-typedef bit<20> label_t;
+#ifndef P4_PROTOCOL_HEADERS_SRMPLS_P4
+#define P4_PROTOCOL_HEADERS_SRMPLS_P4
 
-// Segment Routing MPLS (SR-MPLS)  基于 MPLS 数据平面的分段路由实现
+/**
+ * Segment Routing with the MPLS Data Plane (RFC 8660)
+ * 基于 MPLS 标签栈的段路由
+ * SR-MPLS uses the ordinary MPLS label stack format from RFC 3032.
+ */
+
+typedef bit<20> srmpls_label_t;
+
+const bit<16> SRMPLS_ETHERTYPE_UNICAST = 0x8847;
+const bit<16> SRMPLS_ETHERTYPE_MULTICAST = 0x8848;
+
+/**
+ * Label Stack Entry (4 bytes)
+ * The label is an actual forwarding label, not necessarily a SID index.
+ * A label represents a SID on the wire. No extra SID or flags field follows.
+ * Choose this type or mpls.p4's mpls_shim when declaring a label stack.
+ */
 header srmpls_t {
-    // MPLS 标签栈头部 (32 bits per label)
-    // MPLS label stack entries
-    label_t  label;            // 标签值（SRGB 偏移量）
-    bit<3>   traffic_class;    // TC 字段（QoS 优先级）
-    bit<1>   bottom_of_stack;  // 栈底标志
-    bit<8>   ttl;              // 生存时间
+    srmpls_label_t label;
+    bit<3>        traffic_class;
+    bit<1>        bottom_of_stack; // 1 only on the final stack entry
+    bit<8>        ttl;
+};
 
-    // SR-MPLS 扩展信息 (可选)
-    bit<32>  sid;            // 段标识符（当 label=特殊值时）
-    bit<8>   flags;          // 行为标志位：0x01=持久性 0x02=备份路径
-    bit<24>  flow_tag;       // 流分类标记
-}
+const srmpls_label_t SRMPLS_IPV4_EXPLICIT_NULL = 0;
+const srmpls_label_t SRMPLS_IPV6_EXPLICIT_NULL = 2;
+// Control-plane binding only. This value never appears in a packet.
+const srmpls_label_t SRMPLS_IMPLICIT_NULL = 3;
 
-// 特殊标签常量
-const label_t SRGB_BASE     = 20w16000;    // 全局段基础值
-const label_t EXPLICIT_NULL = 20w0;        // 显式空标签
-const label_t IMPLICIT_NULL = 20w3;        // 隐式空标签
-
-// SID 操作类型
-const bit<8> SR_OP_CONTINUE = 0x1;  // 继续处理
-const bit<8> SR_OP_INSERT   = 0x2;  // 插入新标签
-const bit<8> SR_OP_REPLACE  = 0x3;  // 替换当前标签
-
-
-// Example: 标签栈操作 (Pseudocode)
 /*
-action push_srmpls_label() {
-    srmpls_t.label = SRGB_BASE + segment_id;
-    srmpls_t.ttl = 8w64;
-    srmpls_t.bottom_of_stack = (remaining_segments == 0);
-}
-*/
+ * SRGB ranges and local labels come from control-plane configuration.
+ * Map a global SID index using the receiving node's advertised SRGB ranges.
+ * A fixed base such as 16000 is a deployment choice, not a protocol constant.
+ * Special-purpose labels 0-15 cannot be allocated as ordinary SR-MPLS SIDs.
+ * PUSH adds labels, CONTINUE swaps the top label, NEXT pops the top label.
+ * SID-to-SRv6 mapping and traffic-engineering constraints belong to configured
+ * policies. They are not additional fields in the MPLS label stack entry.
+ */
 
-// Example: 路径编程 (Pseudocode)
+// Local state for the examples, not fields transmitted after an MPLS label.
+struct srmpls_metadata_t {
+    bit<8>         label_count;
+    bit<8>         output_ttl;
+    bit<1>         payload_exposed;
+    srmpls_label_t popped_label;
+};
+
+/**
+ * P4 Parser Logic for a Basic SR-MPLS Stack
+ * The cursor points to the top label. Pass the validated remaining packet
+ * length as mpls_available, excluding any link trailer supplied by the target.
+ * The headers struct contains srmpls_t[16] labels, empty on entry.
+ * More than 16 entries cause a parser error. This is an example capacity,
+ * not a protocol limit. Adjust the stack size and PUSH capacity check together.
+ * The parser stops at the first Bottom of Stack bit.
+ *
+ * This example accepts ordinary labels and IPv4/IPv6 Explicit Null, including
+ * Explicit Null above the bottom as permitted by RFC 4182. Implicit Null is
+ * never valid on the wire. Other special-purpose labels require their own
+ * handlers, including Router Alert, ELI/entropy labels, GAL, XL and MNA.
+ * The parent handles parser errors, special-label semantics and payload
+ * parsing using the label's configured service binding. A payload is not
+ * necessarily IP. Label Count does not include any unparsed payload bytes.
+ */
 /*
-table srmpls_transit {
-    key = {
-        srmpls_t.label: exact;
+parser srmpls_parser(packet_in pkt, inout headers hdr,
+                     inout srmpls_metadata_t srmpls_meta,
+                     in bit<16> mpls_available) {
+    bit<16> bytes_left;
+
+    state start {
+        srmpls_meta.label_count = 0;
+        srmpls_meta.output_ttl = 0;
+        srmpls_meta.payload_exposed = 0;
+        srmpls_meta.popped_label = 0;
+        bytes_left = mpls_available;
+        transition parse_label;
     }
-    actions = {
-        swap_label; 
-        php_action;
-        drop;
-    }
-    size = 100000;
-}
-*/
 
-// Example: 流量工程支持 (Pseudocode)
-header srmpls_te_t {
-    bit<32>  latency;      // 时延约束(μs)
-    bit<32>  jitter;       // 抖动约束
-    bit<8>   affinity;     // 链路亲和属性
-}
-
-
-// 与 SRv6 的互操作 (Pseudocode)
-/*
-action srmpls_to_srv6() {
-    srv6_t.dst_addr = sid_to_ipv6(srmpls_t.label - SRGB_BASE);
-    remove_mpls_header();
-}
-*/
-
-
-/* ====== 典型工作流程 ====== */
-
-// 1. 入口节点封装：(Pseudocode)
-/*
-action encapsulate_srmpls() {
-    srmpls_t[0].label = 16001;  // Node SID
-    srmpls_t[1].label = 16005;  // Adjacency SID
-    srmpls_t[1].bottom_of_stack = 1;
-}
-*/
-
-// 2. 中转节点处理：(Pseudocode)
-/*
-action swap_segment() {
-    srmpls_t.label = next_label;
-    srmpls_t.ttl = srmpls_t.ttl - 8w1;
-    if (srmpls_t.label == IMPLICIT_NULL) {
-        remove_mpls_header();
+    state parse_label {
+        verify(bytes_left >= 4, error.HeaderTooShort);
+        pkt.extract(hdr.labels.next);
+        verify(hdr.labels.last.label >= 16
+               || hdr.labels.last.label == SRMPLS_IPV4_EXPLICIT_NULL
+               || hdr.labels.last.label == SRMPLS_IPV6_EXPLICIT_NULL,
+               error.NoMatch);
+        srmpls_meta.label_count = srmpls_meta.label_count + 1;
+        bytes_left = bytes_left - 4;
+        transition select(hdr.labels.last.bottom_of_stack) {
+            1: accept;
+            default: parse_label;
+        }
     }
 }
 */
 
-// 3. 倒数第二跳弹出：(Pseudocode)
+/**
+ * Basic Label Stack Operations (v1model, Uniform TTL from RFC 3443)
+ * Run once for an incoming MPLS packet. The control plane programs actual
+ * outgoing labels and forwarding ports from each SID's instruction.
+ * A PUSH here adds one SID to an existing stack. For an IP headend, process
+ * the IP hop first, then initialize pushed labels from the resulting IP TTL.
+ * CONTINUE uses swap_segment. NEXT and PHP use pop_segment.
+ * An Implicit Null binding is programmed as POP, never SWAP to label 3.
+ *
+ * PUSH and SWAP preserve the existing stack's Bottom of Stack bits.
+ * SWAP keeps TC. PUSH uses a configured TC and copies the forwarded TTL.
+ * POP copies output_ttl to the newly exposed label. If no labels remain,
+ * payload_exposed and popped_label let the parent select the payload binding.
+ * For IP, the parent copies output_ttl to TTL/Hop Limit, updates the IPv4
+ * checksum and restores the correct link protocol before forwarding.
+ * It also handles the forwarding lookup required by the popped instruction,
+ * egress framing, TC policy, MTU and TTL-expiry error processing.
+ *
+ * Explicit Null packets go intact to explicit_null_port, a configured local
+ * MPLS handler. That handler pops the null label and looks up the exposed
+ * label or IP packet. It must apply TTL processing once before forwarding.
+ * Ordinary label operations use the forwarding table below.
+ */
 /*
-action penultimate_hop_pop() {
-    if (srmpls_t[0].label == EXPLICIT_NULL) {
-        srmpls_t[0].setInvalid();
+control srmpls_control(inout headers hdr,
+                       inout srmpls_metadata_t srmpls_meta,
+                       inout standard_metadata_t standard_metadata,
+                       in bit<9> explicit_null_port) {
+    action drop_srmpls() {
+        mark_to_drop(standard_metadata);
+    }
+
+    action push_segment(srmpls_label_t new_label, bit<3> tc, bit<9> port) {
+        if (new_label < 16 || srmpls_meta.label_count >= 16) {
+            drop_srmpls();
+        } else {
+            hdr.labels[0].ttl = srmpls_meta.output_ttl;
+            hdr.labels.push_front(1);
+            hdr.labels[0].setValid();
+            hdr.labels[0].label = new_label;
+            hdr.labels[0].traffic_class = tc;
+            hdr.labels[0].bottom_of_stack = 0;
+            hdr.labels[0].ttl = srmpls_meta.output_ttl;
+            srmpls_meta.label_count = srmpls_meta.label_count + 1;
+            standard_metadata.egress_spec = port;
+        }
+    }
+
+    action swap_segment(srmpls_label_t new_label, bit<9> port) {
+        if (new_label < 16
+            && new_label != SRMPLS_IPV4_EXPLICIT_NULL
+            && new_label != SRMPLS_IPV6_EXPLICIT_NULL) {
+            drop_srmpls();
+        } else {
+            hdr.labels[0].label = new_label;
+            hdr.labels[0].ttl = srmpls_meta.output_ttl;
+            standard_metadata.egress_spec = port;
+        }
+    }
+
+    action pop_segment(bit<9> port) {
+        srmpls_meta.popped_label = hdr.labels[0].label;
+        srmpls_meta.payload_exposed = hdr.labels[0].bottom_of_stack;
+        hdr.labels.pop_front(1);
+        srmpls_meta.label_count = srmpls_meta.label_count - 1;
+        if (hdr.labels[0].isValid()) {
+            hdr.labels[0].ttl = srmpls_meta.output_ttl;
+        }
+        standard_metadata.egress_spec = port;
+    }
+
+    table srmpls_forwarding {
+        key = {
+            hdr.labels[0].label: exact;
+        }
+        actions = {
+            push_segment;
+            swap_segment;
+            pop_segment;
+            drop_srmpls;
+        }
+        default_action = drop_srmpls();
+    }
+
+    apply {
+        srmpls_meta.output_ttl = 0;
+        srmpls_meta.payload_exposed = 0;
+        srmpls_meta.popped_label = 0;
+        if (standard_metadata.parser_error != error.NoError
+            || !hdr.labels[0].isValid()) {
+            drop_srmpls();
+        } else if (hdr.labels[0].label == SRMPLS_IPV4_EXPLICIT_NULL
+                   || hdr.labels[0].label == SRMPLS_IPV6_EXPLICIT_NULL) {
+            standard_metadata.egress_spec = explicit_null_port;
+        } else if (hdr.labels[0].ttl <= 1) {
+            drop_srmpls();
+        } else {
+            srmpls_meta.output_ttl = hdr.labels[0].ttl - 1;
+            srmpls_forwarding.apply();
+        }
     }
 }
 */
 
-// 4. 显式路径引导：(Pseudocode)
-/*
-action insert_adjacency_sid() {
-    srmpls_t[0].flags |= 8w0x04;  // 显式路径标志
-    srmpls_t[0].flow_tag = flow_hash;
-}
-*/
+#endif
