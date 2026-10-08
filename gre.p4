@@ -1,189 +1,186 @@
+#ifndef P4_PROTOCOL_HEADERS_GRE_P4
+#define P4_PROTOCOL_HEADERS_GRE_P4
+
 /**
  * GRE Header Definition in P4
- * Generic Routing Encapsulation protocol for tunneling
- * 
- * Note: GRE provides a simple, flexible tunneling mechanism that can encapsulate
- *       various network layer protocols over IP networks (IP protocol 47).
+ * Generic Routing Encapsulation over IP protocol 47
+ * Version 0 with checksum, key and sequence fields (RFC 2784 and RFC 2890).
  */
 
-/* GRE Flags */
+/* Masks for the first 16 bits of the GRE header */
 enum bit<16> gre_flags {
-    CHECKSUM_PRESENT = 0x8000,  // Checksum present
-    KEY_PRESENT      = 0x2000,  // Key present
-    SEQUENCE_PRESENT = 0x1000,  // Sequence number present
-    STRICT_SOURCE    = 0x0800   // Strict source route
+    CHECKSUM_PRESENT = 0x8000,
+    KEY_PRESENT      = 0x2000,
+    SEQUENCE_PRESENT = 0x1000,
+    STRICT_SOURCE    = 0x0800   // Legacy RFC 1701 flag, unsupported by this parser
 };
 
-/* GRE Protocol Types */
+/* GRE Payload Protocol Types */
 enum bit<16> gre_protocol_type {
-    IP     = 0x0800,        // IPv4 payload
-    IPV6   = 0x86DD,        // IPv6 payload
-    MPLS   = 0x8847,        // MPLS payload
-    ERSPAN = 0x88BE,        // ERSPAN traffic
-    VXLAN  = 0x6558         // VXLAN payload
+    IP       = 0x0800,  // IPv4
+    IPV6     = 0x86DD,  // IPv6
+    MPLS     = 0x8847,  // MPLS unicast
+    ERSPAN   = 0x88BE,  // ERSPAN Type II
+    ETHERNET = 0x6558   // Transparent Ethernet Bridging, also used by NVGRE
 };
 
 /**
- * GRE Base Header (4-16 bytes)
- * Minimal GRE encapsulation header
+ * GRE Base Header (4 bytes)
+ * Optional fields follow in checksum, key, sequence order.
+ * The complete GRE header is 4, 8, 12 or 16 bytes.
  */
 header gre_header {
-    bit<1>  checksum_present;  // Checksum present flag
-    bit<1>  reserved1;         // Must be 0
-    bit<1>  key_present;       // Key present flag
-    bit<1>  sequence_present;  // Sequence number present flag
-    bit<3>  version;           // GRE version (0 for standard GRE)
-    bit<7>  reserved2;         // Must be 0
-    bit<16> protocol;          // Payload protocol type (gre_protocol_type)
+    bit<1>  checksum_present;
+    bit<1>  reserved1;         // Legacy routing flag, transmit zero
+    bit<1>  key_present;
+    bit<1>  sequence_present;
+    bit<9>  reserved2;         // Transmit zero, see receive rules below
+    bit<3>  version;           // Version 0
+    bit<16> protocol;          // Payload EtherType
 };
 
 /**
- * GRE Optional Fields
- * Variable-length optional fields
+ * GRE Checksum Block (4 bytes, present when C = 1)
+ * The checksum covers the GRE header and its entire payload.
  */
-header gre_options {
-    bit<16> checksum;        // Optional checksum (if checksum_present set)
-    bit<16> reserved;        // Must be 0 (with checksum)
-    bit<32> key;             // Optional key field (if key_present set)
-    bit<32> sequence;        // Optional sequence number (if sequence_present set)
+header gre_checksum_header {
+    bit<16> checksum;
+    bit<16> reserved;          // Transmit zero
 };
 
-/**
- * GRE Transport Header (IP)
- * Outer IP header for GRE encapsulation
- */
-header gre_transport {
-    bit<8>  version_ihl;        // Version (4) + IHL (5 for 20 byte header)
-    bit<8>  dscp_ecn;           // DSCP (6 bits) + ECN (2 bits)
-    bit<16> total_length;       // Total packet length
-    bit<16> identification;     // IP identification
-    bit<16> flags_frag_offset;  // Flags + Fragment offset
-    bit<8>  ttl;                // Time to live
-    // bit<8>  protocol = 47;  // (pseudocode: field initializer removed)      // GRE protocol number
-    bit<16> header_checksum;    // IP header checksum
-    bit<32> src_ip;             // Source IP address (tunnel endpoint)
-    bit<32> dst_ip;             // Destination IP address (tunnel endpoint)
+/* GRE Key (4 bytes, present when K = 1) */
+header gre_key_header {
+    bit<32> key;
 };
 
-/**
- * GRE Packet Structure:
- * [Outer Ethernet][Outer IP][GRE][Options][Payload]
- */
-
-/**
- * GRE Keepalive Header
- * Used for tunnel keepalive monitoring
- */
-header gre_keepalive {
-    bit<32> timestamp;      // Timestamp of keepalive
-    bit<16> sequence;       // Sequence number
-    bit<16> interval;       // Keepalive interval in seconds
+/* GRE Sequence Number (4 bytes, present when S = 1) */
+header gre_sequence_header {
+    bit<32> sequence;
 };
 
 /**
  * P4 Parser Logic for GRE
+ * The packet cursor must point to the GRE base header.
+ * Parse outer IP headers separately using ipv4.p4 or ipv6.p4.
+ * The outer parser handles IP options, extensions and fragmentation.
+ * The headers struct contains gre_header gre_header, gre_checksum_header
+ * gre_checksum, gre_key_header gre_key and gre_sequence_header gre_sequence.
+ *
+ * This example supports version 0 without legacy routing fields.
+ * Bits 1, 4 and 5 must be zero. Reserved bits 6-12 are ignored on receipt.
+ * Unknown payload protocols are left for the enclosing pipeline to handle.
+ * The enclosing pipeline handles parser errors, payload bounds, checksum
+ * verification over the full GRE packet and sequence tracking.
  */
 /*
-parser gre_parser(packet_in pkt, out headers hdr) {
+parser gre_parser(packet_in pkt, inout headers hdr) {
     state start {
-        pkt.extract(hdr.outer_ethernet);
-        transition select(hdr.outer_ethernet.eth_type) {
-            0x0800: parse_ip;
-            default: accept;
-        }
-    }
-    
-    state parse_ip {
-        pkt.extract(hdr.gre_transport);
-        transition select(hdr.gre_transport.protocol) {
-            47: parse_gre;
-            default: accept;
-        }
-    }
-    
-    state parse_gre {
+        hdr.gre_checksum.setInvalid();
+        hdr.gre_key.setInvalid();
+        hdr.gre_sequence.setInvalid();
         pkt.extract(hdr.gre_header);
-        transition parse_gre_options;
+        verify(hdr.gre_header.version == 0, error.NoMatch);
+        verify(hdr.gre_header.reserved1 == 0
+               && hdr.gre_header.reserved2[8:7] == 0, error.NoMatch);
+        transition select(hdr.gre_header.checksum_present) {
+            1: parse_checksum;
+            default: check_key;
+        }
     }
-    
-    state parse_gre_options {
-        // Dynamically parse optional fields based on flags
-        if (hdr.gre_header.checksum_present) {
-            pkt.extract(hdr.gre_options.checksum);
-            pkt.extract(hdr.gre_options.reserved);
+
+    state parse_checksum {
+        pkt.extract(hdr.gre_checksum);
+        transition check_key;
+    }
+
+    state check_key {
+        transition select(hdr.gre_header.key_present) {
+            1: parse_key;
+            default: check_sequence;
         }
-        if (hdr.gre_header.key_present) {
-            pkt.extract(hdr.gre_options.key);
+    }
+
+    state parse_key {
+        pkt.extract(hdr.gre_key);
+        transition check_sequence;
+    }
+
+    state check_sequence {
+        transition select(hdr.gre_header.sequence_present) {
+            1: parse_sequence;
+            default: parse_payload;
         }
-        if (hdr.gre_header.sequence_present) {
-            pkt.extract(hdr.gre_options.sequence);
-        }
+    }
+
+    state parse_sequence {
+        pkt.extract(hdr.gre_sequence);
         transition parse_payload;
     }
-    
+
     state parse_payload {
         transition select(hdr.gre_header.protocol) {
-            0x0800: parse_inner_ip;
-            0x86DD: parse_inner_ipv6;
-            0x8847: parse_mpls;
+            gre_protocol_type.IP: parse_inner_ip;
+            gre_protocol_type.IPV6: parse_inner_ipv6;
+            gre_protocol_type.MPLS: parse_mpls;
+            gre_protocol_type.ETHERNET: parse_inner_ethernet;
+            gre_protocol_type.ERSPAN: parse_erspan;
             default: accept;
         }
     }
-    
-    // Additional parse states for payload types...
+
+    // Add the payload states using their respective header definitions.
 }
 */
 
 /**
- * P4 Match-Action Pipeline for GRE
+ * P4 Match-Action Pipeline for GRE (v1model)
+ * Forward by payload protocol and optional key.
+ * Key presence distinguishes an absent key from a key whose value is zero.
+ * This example forwards the GRE packet without changing its headers.
  */
 /*
-control gre_control(inout headers hdr) {
-    action encapsulate_ip() {
-        // Encapsulate IPv4 payload in GRE tunnel
-        hdr.gre_transport.src_ip = local_tunnel_ip;
-        hdr.gre_transport.dst_ip = remote_tunnel_ip;
-        hdr.gre_header.protocol = IP;
-        hdr.gre_header.key_present = 1;
-        hdr.gre_options.key = tunnel_id;
+control gre_control(inout headers hdr,
+                    inout standard_metadata_t standard_metadata) {
+    bit<1> key_present;
+    bit<32> tunnel_key;
+
+    action forward_gre(bit<9> port) {
+        standard_metadata.egress_spec = port;
     }
-    
-    action decapsulate() {
-        // Remove GRE encapsulation and process inner packet
-        hdr.inner_ip.version_ihl = hdr.payload.version_ihl;
+
+    action drop_gre() {
+        mark_to_drop(standard_metadata);
     }
-    
-    action route_tunnel() {
-        // Perform tunnel routing based on optional fields
-        if (hdr.gre_header.key_present) {
-            hdr.gre_transport.dst_ip = lookup_tunnel_endpoint(hdr.gre_options.key);
-        }
-    }
-    
-    action process_keepalive() {
-        // Process GRE keepalive messages
-        if (hdr.gre_keepalive.interval > 0) {
-            update_tunnel_health(hdr.gre_options.key);
-        }
-    }
-    
+
     table gre_processing {
         key = {
             hdr.gre_header.protocol: exact;
-            hdr.gre_options.key: optional;
+            key_present: exact;
+            tunnel_key: exact;
         }
         actions = {
-            encapsulate_ip;
-            decapsulate;
-            route_tunnel;
-            process_keepalive;
+            forward_gre;
+            drop_gre;
             NoAction;
         }
-        default_action = NoAction;
+        default_action = drop_gre();
     }
-    
+
     apply {
-        gre_processing.apply();
+        if (standard_metadata.parser_error != error.NoError
+            || !hdr.gre_header.isValid()) {
+            drop_gre();
+        } else {
+            key_present = 0;
+            tunnel_key = 0;
+            if (hdr.gre_key.isValid()) {
+                key_present = 1;
+                tunnel_key = hdr.gre_key.key;
+            }
+            gre_processing.apply();
+        }
     }
 }
 */
+
+#endif
