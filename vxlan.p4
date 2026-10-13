@@ -1,169 +1,227 @@
+#ifndef P4_PROTOCOL_HEADERS_VXLAN_P4
+#define P4_PROTOCOL_HEADERS_VXLAN_P4
+
 /**
- * VXLAN Header Definition in P4
- * Virtual Extensible LAN protocol for network virtualization
- * 
- * Note: VXLAN provides Layer 2 overlay networks over Layer 3 infrastructure
- *       using MAC-in-UDP encapsulation with 24-bit VXLAN Network Identifier (VNI)
+ * VXLAN header definitions (RFC 7348)
+ * 虚拟扩展局域网报头，以 UDP 承载内层以太网帧
+ * A 24-bit VNI identifies the overlay network. The inner FCS is omitted.
+ * Frame format: [outer Ethernet][IP][UDP][VXLAN][inner Ethernet][payload].
+ * Gateway and tenant state are local metadata, not an extra wire header.
  */
 
-/* VXLAN Flags */
+const bit<16> VXLAN_UDP_PORT = 4789;
+
+/* I is the only defined flag in the base VXLAN format. */
 enum bit<8> vxlan_flags {
-    I_FLAG  = 0x08,  // Indicates valid VNI present
-    R_FLAG  = 0x04,  // Reserved for future use
-    R_FLAG2 = 0x02,  // Reserved for future use
-    R_FLAG3 = 0x01   // Reserved for future use
+    I_FLAG = 0x08
 };
 
 /**
- * VXLAN Header (8 bytes)
- * Encapsulation header for overlay networks
+ * VXLAN base header (8 bytes)
+ * I must be set to indicate a valid VNI. The other seven flag bits and both
+ * reserved fields are transmitted as zero and ignored on receipt.
+ * This format always carries Ethernet, including when reserved bits are set.
+ * VXLAN-GPE on UDP port 4790 uses a separate format and receive path.
  */
 header vxlan_header {
-    bit<8>  flags;          // VXLAN flags (I/R/R/R bits)
-    bit<24> reserved1;      // Reserved field (must be 0)
-    bit<24> vni;            // VXLAN Network Identifier
-    bit<8>  reserved2;      // Reserved field (must be 0)
+    bit<8> flags;
+    bit<24> reserved1;
+    bit<24> vni;
+    bit<8> reserved2;
 };
 
-/**
- * Inner Ethernet Header (14 bytes)
- * Original L2 frame being encapsulated
- */
+/* Inner Ethernet prefix (14 bytes). VLAN tags and payload follow unchanged. */
 header inner_ethernet {
-    bit<48> dst_mac;      // Destination MAC address
-    bit<48> src_mac;      // Source MAC address
-    bit<16> eth_type;     // EtherType of payload
+    bit<48> dst_mac;
+    bit<48> src_mac;
+    bit<16> eth_type;
 };
 
 /**
- * UDP Header (8 bytes)
- * Transport protocol for VXLAN
+ * Outer UDP header (8 bytes)
+ * The destination port defaults to 4789 and can be configured for legacy peers.
+ * A hash of the inner flow can supply source-port entropy. RFC 7348 recommends
+ * the dynamic/private range 49152-65535 for a source port chosen this way.
+ * Length includes this header. IPv4 permits a zero UDP checksum.
+ * IPv6 normally requires a checksum. Zero-checksum tunnels need the separate
+ * configuration and requirements in RFC 6936 and RFC 8085, Section 3.4.
  */
 header vxlan_udp {
-    bit<16> src_port;     // Source port (often hash of inner frame)
-    bit<16> dst_port;     // Destination port (4789 by default)
-    bit<16> length;       // UDP length including header
-    bit<16> checksum;     // UDP checksum (optional for IPv4)
+    bit<16> src_port;
+    bit<16> dst_port;
+    bit<16> length;
+    bit<16> checksum;
 };
 
 /**
- * Outer IP Header (20 bytes)
- * Underlay routing header
+ * Outer IPv4 header (20-60 bytes, RFC 791)
+ * Protocol follows TTL and precedes the header checksum. VXLAN uses UDP (17).
+ * IHL counts all header bytes, including options, in 4-byte units.
+ * Extract (IHL - 5) * 32 bits into options. Preserve option values for the
+ * enclosing IP pipeline to validate and process. IPv6 uses ipv6.p4 instead.
  */
 header vxlan_ip {
-    bit<8>  version_ihl;        // Version (4) + IHL (5 for 20 byte header)
-    bit<8>  dscp_ecn;           // DSCP (6 bits) + ECN (2 bits)
-    bit<16> total_length;       // Total packet length
-    bit<16> identification;     // IP identification
-    bit<16> flags_frag_offset;  // Flags (3 bits) + Fragment offset (13 bits)
-    bit<8>  ttl;                // Time to live
-    // bit<8>  protocol = 17;  // (pseudocode: field initializer removed)      // UDP protocol number
-    bit<16> header_checksum;    // IP header checksum
-    bit<32> src_ip;             // Source IP address (VTEP address)
-    bit<32> dst_ip;             // Destination IP address (VTEP address)
+    bit<8> version_ihl;
+    bit<8> dscp_ecn;
+    bit<16> total_length;
+    bit<16> identification;
+    bit<16> flags_frag_offset;
+    bit<8> ttl;
+    bit<8> protocol;
+    bit<16> header_checksum;
+    bit<32> src_ip;
+    bit<32> dst_ip;
+    varbit<320> options;
+};
+
+struct vxlan_headers_t {
+    vxlan_header base;
+    inner_ethernet inner;
+};
+
+struct vxlan_metadata_t {
+    bit<16> inner_frame_bytes;
+    bit<16> payload_bytes;
+    bool inner_vlan;
 };
 
 /**
- * VXLAN Packet Structure:
- * [Outer Ethernet][Outer IP][UDP][VXLAN][Inner Ethernet][Payload]
- */
-
-/**
- * VXLAN Termination Header
- * Used by VXLAN gateways for additional processing
- */
-header vxlan_termination {
-    bit<8>  gateway_type;  // 0=regular, 1=L2 gateway, 2=L3 gateway
-    bit<16> context_id;    // Gateway context identifier
-    bit<8>  policy_flags;  // Policy enforcement flags
-    bit<32> tenant_id;     // Tenant identifier
-};
-
-/**
- * P4 Parser Logic for VXLAN
+ * Parsing examples (P4_16).
+ * The IPv4 helper starts at the IP header. received_ip_bytes is the number of
+ * physically available bytes from that cursor, excluding any outer FCS.
+ * It preserves options, checks length boundaries and selects unfragmented UDP.
+ * This endpoint example discards fragments, as permitted by RFC 7348.
+ * The enclosing pipeline verifies the IPv4 checksum and processes IP options.
+ *
+ * The VXLAN parser starts at the VXLAN header after UDP destination-port
+ * classification and IP/UDP validation. Pass UDP length minus 8 as vxlan_bytes.
+ * The caller checks those bytes against both the IP payload and received data.
+ * UDP checksum handling follows the outer IP version and configured policy.
+ *
+ * Only the base and inner Ethernet prefix are extracted. VLAN tags, inner
+ * protocols and padding remain unchanged. A tagged frame needs at least one
+ * complete 4-byte tag. Nested tags and inner protocol bounds belong to the
+ * handler. Configure VLAN preservation explicitly for the relevant VNI.
+ * MAC learning, unknown unicast and multicast replication need bridge state.
  */
 /*
-parser vxlan_parser(packet_in pkt, out headers hdr) {
+parser vxlan_ipv4_parser(packet_in pkt, out vxlan_ip hdr,
+                         out bit<16> ip_payload_bytes,
+                         in bit<32> received_ip_bytes) {
+    bit<8> version_ihl;
+    bit<16> header_bytes;
+
     state start {
-        pkt.extract(hdr.outer_ethernet);
-        transition select(hdr.outer_ethernet.eth_type) {
-            0x0800: parse_ip;
-            default: accept;
-        }
+        ip_payload_bytes = 0;
+        verify(received_ip_bytes >= 20, error.HeaderTooShort);
+        version_ihl = pkt.lookahead<bit<8>>();
+        verify(version_ihl[7:4] == 4 && version_ihl[3:0] >= 5, error.NoMatch);
+        header_bytes = (bit<16>)version_ihl[3:0] * 4;
+        verify((bit<32>)header_bytes <= received_ip_bytes, error.HeaderTooShort);
+        pkt.extract(hdr, (bit<32>)(header_bytes - 20) * 8);
+        verify(hdr.total_length >= header_bytes, error.HeaderTooShort);
+        verify((bit<32>)hdr.total_length <= received_ip_bytes, error.HeaderTooShort);
+        verify(hdr.protocol == 17, error.NoMatch);
+        verify((hdr.flags_frag_offset & 0x3FFF) == 0, error.NoMatch);
+        ip_payload_bytes = hdr.total_length - header_bytes;
+        transition accept;
     }
-    
-    state parse_ip {
-        pkt.extract(hdr.vxlan_ip);
-        transition select(hdr.vxlan_ip.protocol) {
-            17: parse_udp;
-            default: accept;
-        }
-    }
-    
-    state parse_udp {
-        pkt.extract(hdr.vxlan_udp);
-        transition select(hdr.vxlan_udp.dst_port) {
-            4789: parse_vxlan;
-            default: accept;
-        }
-    }
-    
-    state parse_vxlan {
-        pkt.extract(hdr.vxlan_header);
-        transition parse_inner_ethernet;
-    }
-    
-    state parse_inner_ethernet {
-        pkt.extract(hdr.inner_ethernet);
-        transition select(hdr.inner_ethernet.eth_type) {
-            0x0800: parse_inner_ip;
-            0x0806: parse_inner_arp;
-            default: accept;
-        }
-    }
-    
-    // Additional parse states for inner payload...
 }
-*/
 
-/**
- * P4 Match-Action Pipeline for VXLAN
- */
-/*
-control vxlan_control(inout headers hdr) {
-    action encapsulate() {
-        // Apply VXLAN encapsulation to original frame
-        hdr.vxlan_ip.src_ip = vtep_address;
-        hdr.vxlan_ip.dst_ip = lookup_vtep(hdr.inner_ethernet.dst_mac);
-        hdr.vxlan_header.vni = lookup_vni(hdr.inner_ethernet.vlan_id);
+parser vxlan_parser(packet_in pkt, out vxlan_headers_t hdr,
+                    out vxlan_metadata_t meta, in bit<16> vxlan_bytes) {
+    state start {
+        meta.inner_frame_bytes = 0;
+        meta.payload_bytes = 0;
+        meta.inner_vlan = false;
+        verify(vxlan_bytes >= 22, error.HeaderTooShort);
+        pkt.extract(hdr.base);
+        verify((hdr.base.flags & (bit<8>)vxlan_flags.I_FLAG) != 0, error.NoMatch);
+        pkt.extract(hdr.inner);
+        meta.inner_frame_bytes = vxlan_bytes - 8;
+        meta.payload_bytes = meta.inner_frame_bytes - 14;
+        transition select(hdr.inner.eth_type) {
+            0x8100: tagged_frame;
+            0x88A8: tagged_frame;
+            default: accept;
+        }
     }
-    
-    action decapsulate() {
-        // Remove VXLAN encapsulation and process inner frame
-        hdr.inner_ethernet.eth_type = hdr.payload.eth_type;
+
+    state tagged_frame {
+        verify(meta.payload_bytes >= 4, error.HeaderTooShort);
+        meta.inner_vlan = true;
+        transition accept;
     }
-    
-    action route_overlay() {
-        // Perform overlay routing based on inner headers
-        hdr.vxlan_ip.dst_ip = overlay_routing(hdr.inner_ip.dst_addr);
+}
+
+// Handler ports receive the intact tunnel packet for local bridge processing.
+// The enclosing pipeline strips outer headers and handles egress framing.
+control vxlan_control(inout vxlan_headers_t hdr, in vxlan_metadata_t meta,
+                      inout standard_metadata_t standard_metadata) {
+    action deliver(bit<9> handler_port, bit<1> allow_inner_vlan) {
+        if (meta.inner_vlan && allow_inner_vlan == 0) {
+            mark_to_drop(standard_metadata);
+        } else {
+            standard_metadata.egress_spec = handler_port;
+        }
     }
-    
-    table vxlan_processing {
+
+    action drop_vxlan() {
+        mark_to_drop(standard_metadata);
+    }
+
+    table vxlan_handlers {
         key = {
-            hdr.vxlan_header.vni: exact;
-            hdr.inner_ethernet.dst_mac: exact;
+            hdr.base.vni: exact;
+            hdr.inner.dst_mac: exact;
         }
         actions = {
-            encapsulate;
-            decapsulate;
-            route_overlay;
-            NoAction;
+            deliver;
+            drop_vxlan;
         }
-        default_action = NoAction;
+        default_action = drop_vxlan();
     }
-    
+
     apply {
-        vxlan_processing.apply();
+        if (standard_metadata.parser_error != error.NoError
+            || !hdr.base.isValid() || !hdr.inner.isValid()) {
+            drop_vxlan();
+        } else {
+            vxlan_handlers.apply();
+        }
     }
 }
 */
+
+/**
+ * Base header construction example (v1model).
+ * The inner frame is already parsed and remains unchanged. A VNI supplied by
+ * the enclosing pipeline identifies its configured segment. Tagged frames
+ * require explicit permission. VLAN removal needs a separate parsing path.
+ * The enclosing pipeline constructs outer Ethernet/IP/UDP headers, computes
+ * lengths and checksums and checks the underlay MTU without fragmenting.
+ * The deparser emits hdr.base followed by hdr.inner and the remaining payload.
+ */
+/*
+control vxlan_encapsulation(inout vxlan_headers_t hdr,
+                            inout standard_metadata_t standard_metadata,
+                            in bit<24> vni, in bool allow_inner_vlan) {
+    apply {
+        if (!hdr.inner.isValid()) {
+            mark_to_drop(standard_metadata);
+        } else if (!allow_inner_vlan
+                   && (hdr.inner.eth_type == 0x8100
+                       || hdr.inner.eth_type == 0x88A8)) {
+            mark_to_drop(standard_metadata);
+        } else {
+            hdr.base.setValid();
+            hdr.base.flags = (bit<8>)vxlan_flags.I_FLAG;
+            hdr.base.reserved1 = 0;
+            hdr.base.vni = vni;
+            hdr.base.reserved2 = 0;
+        }
+    }
+}
+*/
+
+#endif
