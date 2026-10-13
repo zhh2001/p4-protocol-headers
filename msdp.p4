@@ -1,107 +1,206 @@
-typedef bit<32> ipv4_addr_t;
+/*
+ * Multicast Source Discovery Protocol for IPv4
+ * MSDP 公共头、Source-Active 条目和有界消息解析示例
+ * RFC 3618, sections 12 and 13
+ */
+#ifndef P4_PROTOCOL_HEADERS_MSDP_P4
+#define P4_PROTOCOL_HEADERS_MSDP_P4
 
-// Multicast Source Discovery Protocol  跨域组播的核心协议，用于在 PIM-SM 域间传播组播源信息
+const bit<16> MSDP_TCP_PORT = 639;
+const bit<8> MSDP_SOURCE_ACTIVE = 1;
+const bit<8> MSDP_SA_REQUEST = 2;
+const bit<8> MSDP_SA_RESPONSE = 3;
+const bit<8> MSDP_KEEPALIVE = 4;
+const bit<8> MSDP_RESERVED_TYPE_5 = 5; // Previously Notification
+const bit<8> MSDP_TRACEROUTE_PROGRESS = 6;
+const bit<8> MSDP_TRACEROUTE_REPLY = 7;
+const bit<16> MSDP_MAX_MESSAGE_BYTES = 9192;
+const bit<8> MSDP_MAX_SA_ENTRIES = 255;
+const bit<8> MSDP_SOURCE_PREFIX_LENGTH = 32;
+
+// Three-octet TLV prefix. length includes this prefix and the value.
+// KeepAlive is exactly three octets. Other types have at least four.
+// There is no version field or common reserved field. Senders limit
+// messages to 9192 octets, excluding TCP/IP and link-layer headers.
+// RFC 3618 section 12 recommends accepting an oversized received TLV,
+// ignoring extra data and keeping the session. This is a receive policy,
+// not permission to generate messages beyond the transmission limit.
 header msdp_t {
-    // 版本 (4 bits) - 固定为 1
-    // Version (4 bits) - Fixed to 1
-    bit<4> version;
-
-    // 类型 (4 bits) - MSDP 消息类型：
-    // Type (4 bits) - MSDP message types:
-    //     1 = Source Active (SA) 
-    //     2 = SA Request
-    //     3 = SA Response
-    //     4 = Keepalive
-    //     5 = Notification
-    bit<4> msg_type;
-
-    // 保留字段 (8 bits) - 必须置 0
-    // Reserved (8 bits) - Must be zero
-    bit<8> reserved;
-
-    // 长度 (16 bits) - 报文总长度
-    // Length (16 bits) - Total message length
+    bit<8> msg_type;
     bit<16> length;
-
-    // 条目计数 (16 bits) - SA 消息中的条目数
-    // Entry count (16 bits) - SA entries count
-    bit<16> entry_count;
-
-    // 源活跃数据 (可变长度) - SA 条目列表
-    // SA data (variable) - List of SA entries
-    // msdp_sa_entry_t[16] sa_entries;  // (removed: nested header reference)
 }
 
-header msdp_sa_entry_t {
-    // 组播组地址 (32 bits) - 组播组 IP
-    // Multicast group (32 bits) - Group address
-    ipv4_addr_t group;
-
-    // 源地址 (32 bits) - 组播源 IP
-    // Source address (32 bits) - Source IP
-    ipv4_addr_t source;
-
-    // RP地址 (32 bits) - 通告者的 RP 地址
-    // RP address (32 bits) - Originator's RP
+// Source-Active (type 1) body prefix, immediately after msdp_t.
+// The entry count is eight bits. All entries share this RP address.
+// Control information occupies 8 + 12 * entry_count octets, including
+// the common header. Any remaining value is one encapsulated IPv4 packet.
+header msdp_sa_t {
+    bit<8> entry_count;
     bit<32> rp_address;
-
-    // 生存时间 (16 bits) - SA 条目有效期(秒)
-    // TTL (16 bits) - Entry lifetime in seconds
-    bit<16> ttl;
-
-    // 封装数据 (可变长度) - 原始组播数据包
-    // Encapsulated data (variable) - Original packet
-    varbit<1024> payload;
 }
 
-// MSDP 状态标志
-const bit<8> MSDP_STATE_RPF_FAIL = 8w0x01;  // RPF 检查失败
-const bit<8> MSDP_STATE_SA_FILTERED = 8w0x02;  // 被 SA 过滤器拦截
-
-
-// 关键特性说明：
-//     1. 域间源发现：( ↓↓↓ Example, Pseudocode ↓↓↓ )
-/*
-action create_sa_message() {
-    msdp_t.msg_type = 4w1;  // SA 类型
-    msdp_sa_entry.ttl = 16w210;  // 默认生存时间
+// One twelve-octet (S,G) entry after msdp_sa_t, in wire order.
+// Reserved is zero on transmission and ignored on reception.
+// Senders set source_prefix_length to 32. No TTL or RP is carried here.
+// If encapsulated data follows the list, only the last entry describes it.
+// Its source/group must match the packet's IPv4 source/destination, and
+// the packet's total length must equal the remaining message length.
+header msdp_sa_entry_t {
+    bit<24> reserved;
+    bit<8> source_prefix_length;
+    bit<32> group;
+    bit<32> source;
 }
-*/
-//     2. RPF 检查机制：( ↓↓↓ Example, Pseudocode ↓↓↓ )
+
+// Types 2/3 and 6/7 are assigned, but their value layouts are not described
+// in RFC 3618. Type 5 is reserved. Do not infer their body format from SA.
+// Unknown types are discarded without resetting the session (section 13).
+
+struct msdp_metadata_t {
+    bit<32> message_bytes;
+    bit<32> parsed_bytes;
+    bit<32> remaining;
+    bit<8> entries_left;
+    bit<8> parsed_entries;
+    bool oversized;
+}
+
 /*
-table msdp_rpf_check {
-    key = {
-        rp_address: exact;
+ * One framed MSDP message and local delivery example
+ * headers contains msdp_t msdp, msdp_sa_t msdp_sa and
+ * msdp_sa_entry_t[255] msdp_sa_entries. metadata contains
+ * msdp_metadata_t msdp. Invoke once per packet with headers invalid.
+ *
+ * The cursor starts at Type. message_bytes is the physically available
+ * size of one complete TLV, including its three-octet prefix. TCP port 639
+ * identifies the session, not message boundaries. TCP reassembly, stream
+ * offsets, retransmissions and separation of coalesced messages belong
+ * to the caller. TCP PSH, IP lengths and Ethernet padding do not delimit
+ * an MSDP message. Bytes beyond message_bytes are outside this TLV.
+ *
+ * This parser checks framing and extracts the SA prefix and all entries
+ * within the normal 9192-octet limit. A received TLV beyond that limit
+ * retains its entire body and sets oversized for the session handler to
+ * apply section 12's receive policy. It does not produce a format error
+ * solely for exceeding the transmission limit. Other types retain their
+ * value unchanged. KeepAlive within the normal limit has no value.
+ *
+ * For ordinary SA, remaining is the encapsulated-data length, zero when
+ * absent. The data stays raw. The handler validates its IPv4 length and
+ * last-entry association, source prefixes, multicast groups and RP/source
+ * addresses. Reserved entry bits remain unchanged and are ignored.
+ * Emit msdp, msdp_sa when valid and the valid entry stack, then the
+ * remaining payload. This preserves the original byte order.
+ *
+ * Peer-RPF needs the originating RP and established-peer/MRIB state.
+ * SA filtering, caching, Anycast RP policy, PIM joins, timers, TCP checksum
+ * validation and encapsulated-data forwarding belong to the session owner.
+ * The surrounding application reports TLV format errors to that owner
+ * for section 13's session-reset decision. Unknown types are delivered
+ * for silent discard there, without a session reset. Parser errors alone
+ * do not operate a TCP connection. This example only parses and delivers.
+ */
+/*
+parser msdp_parser(packet_in pkt, inout headers hdr, inout metadata meta,
+                   in bit<32> message_bytes) {
+    state start {
+        meta.msdp.message_bytes = message_bytes;
+        meta.msdp.parsed_bytes = 0;
+        meta.msdp.remaining = message_bytes;
+        meta.msdp.entries_left = 0;
+        meta.msdp.parsed_entries = 0;
+        meta.msdp.oversized = false;
+        verify(message_bytes >= 3 && message_bytes <= 65535, error.NoMatch);
+        pkt.extract(hdr.msdp);
+        verify((bit<32>)hdr.msdp.length == message_bytes, error.NoMatch);
+        meta.msdp.parsed_bytes = 3;
+        meta.msdp.remaining = message_bytes - 3;
+        meta.msdp.oversized = message_bytes > (bit<32>)MSDP_MAX_MESSAGE_BYTES;
+        transition select(meta.msdp.oversized) {
+            true: accept;
+            default: classify;
+        }
     }
-    actions = {
-        accept_sa;
-        drop_sa;
+
+    state classify {
+        transition select(hdr.msdp.msg_type) {
+            MSDP_SOURCE_ACTIVE: source_active;
+            MSDP_KEEPALIVE: keepalive;
+            default: opaque_value;
+        }
     }
-    size = 1024;
+
+    state source_active {
+        verify(meta.msdp.remaining >= 5, error.NoMatch);
+        pkt.extract(hdr.msdp_sa);
+        meta.msdp.parsed_bytes = 8;
+        meta.msdp.remaining = meta.msdp.remaining - 5;
+        meta.msdp.entries_left = hdr.msdp_sa.entry_count;
+        verify(meta.msdp.remaining >= (bit<32>)hdr.msdp_sa.entry_count * 12,
+               error.NoMatch);
+        transition next_entry;
+    }
+
+    state next_entry {
+        transition select(meta.msdp.entries_left) {
+            0: accept;
+            default: entry;
+        }
+    }
+
+    state entry {
+        verify(meta.msdp.parsed_entries < MSDP_MAX_SA_ENTRIES
+               && meta.msdp.remaining >= 12, error.NoMatch);
+        pkt.extract(hdr.msdp_sa_entries.next);
+        meta.msdp.entries_left = meta.msdp.entries_left - 1;
+        meta.msdp.parsed_entries = meta.msdp.parsed_entries + 1;
+        meta.msdp.parsed_bytes = meta.msdp.parsed_bytes + 12;
+        meta.msdp.remaining = meta.msdp.remaining - 12;
+        transition next_entry;
+    }
+
+    state keepalive {
+        verify(meta.msdp.remaining == 0, error.NoMatch);
+        transition accept;
+    }
+
+    state opaque_value {
+        verify(meta.msdp.remaining >= 1, error.NoMatch);
+        transition accept;
+    }
 }
-*/
-//     3. Anycast RP 支持：( ↓↓↓ Example, Pseudocode ↓↓↓ )
-/*
-action handle_anycast_rp() {
-    msdp_sa_entry.rp_address = 32w0x0A010101; // Anycast RP 地址
+
+// v1model example. Ports identify local MSDP processing endpoints.
+control msdp_control(inout headers hdr, inout metadata meta,
+                     inout standard_metadata_t standard_metadata,
+                     in bit<9> handler_port) {
+    action deliver(bit<9> port) {
+        standard_metadata.egress_spec = port;
+    }
+
+    action deliver_default() {
+        standard_metadata.egress_spec = handler_port;
+    }
+
+    table message_handlers {
+        key = {
+            standard_metadata.ingress_port: exact;
+            hdr.msdp.msg_type: exact;
+            meta.msdp.oversized: exact;
+        }
+        actions = { deliver; deliver_default; }
+        default_action = deliver_default();
+    }
+
+    apply {
+        if (standard_metadata.parser_error != error.NoError
+            || !hdr.msdp.isValid()) {
+            mark_to_drop(standard_metadata);
+        } else {
+            message_handlers.apply();
+        }
+    }
 }
 */
 
-
-// 典型工作流程：
-//     1. 源注册：
-//         - 第一跳 RP 检测到新组播源
-//         - 生成 SA 消息发送给所有 MSDP 对等体
-//     2. 域间传播：( ↓↓↓ Example, Pseudocode ↓↓↓ )
-/*
-action forward_sa() {
-    msdp_t.entry_count = msdp_t.entry_count + 16w1;
-    msdp_sa_entry.ttl = msdp_sa_entry.ttl - 16w1;  // 递减 TTL
-}
-*/
-//     3. 接收处理：
-//         - 接收 RP 检查 SA 有效性
-//         - 向源发起 PIM Join 建立 SPT
-//     4. 状态维护：
-//         - 周期性发送 Keepalive（默认 60 秒）
-//         - SA条目默认存活 210 秒
+#endif // P4_PROTOCOL_HEADERS_MSDP_P4
