@@ -1,238 +1,263 @@
-/**
- * IPFIX Header Definition in P4
- * IPFIX 协议 P4 定义
- * 
- * Note: IPFIX is the IETF standard protocol for network flow export
- *       基于 IPFIX 的流量导出协议定义
- */
+#ifndef P4_PROTOCOL_HEADERS_IPFIX_P4
+#define P4_PROTOCOL_HEADERS_IPFIX_P4
 
-/* IPFIX Message Types */
-enum bit<8> ipfix_message_type {
-    TEMPLATE_FLOWSET = 0,   // 模板流集合
-    DATA_FLOWSET     = 1,   // 数据流集合
-    OPTIONS_TEMPLATE = 2,   // 选项模板
-    OPTIONS_DATA     = 3    // 选项数据
+#include "udp.p4"
+
+/**
+ * IPFIX message, Set and Template formats (RFC 7011, RFC 7012)
+ * IPFIX 消息、集合、模板与有界解析示例
+ */
+const bit<16> IPFIX_VERSION = 10;
+const bit<16> IPFIX_PORT = 4739; // UDP, TCP and SCTP
+const bit<16> IPFIX_SECURE_PORT = 4740; // TLS/TCP or DTLS/SCTP and DTLS/UDP
+const bit<16> IPFIX_DATA_SET_MIN_ID = 256;
+const bit<16> IPFIX_VARIABLE_FIELD_LENGTH = 65535;
+const bit<32> IPFIX_MAX_MESSAGE_BYTES = 65535;
+
+// There is one message format. Set IDs distinguish the contained records.
+enum bit<16> ipfix_set_id {
+    TEMPLATE = 2,
+    OPTIONS_TEMPLATE = 3
 }
 
-/**
- * IPFIX Message Header (RFC 7011)
- * IPFIX 消息头(16 字节)
+/* Message header, 16 bytes. Length includes this header and every Set.
+ * Export Time is unsigned UNIX seconds. Sequence Number counts Data Records
+ * sent before this message, modulo 2^32, per stream and Observation Domain
+ * (RFC 7011 erratum 4396). Template and Options Template Records do not advance
+ * it. SCTP counts each stream separately. TCP and UDP use one per Transport Session.
  */
 header ipfix_header {
-    /* Version Number - 16 bits
-     * 版本号 - 16 位
-     * Value 0x000a for IPFIX (10 in decimal)
-     * IPFIX 版本固定为 10(0x000a)
-     */
     bit<16> version;
-    
-    /* Length - 16 bits
-     * 长度 - 16 位
-     * Total length of the IPFIX message in bytes
-     * IPFIX 消息的总字节长度
-     */
     bit<16> length;
-    
-    /* Export Time - 32 bits
-     * 导出时间 - 32 位
-     * Seconds since UNIX epoch (1970-01-01 00:00:00 UTC)
-     * 自 UNIX 纪元以来的秒数
-     */
     bit<32> export_time;
-    
-    /* Sequence Number - 32 bits
-     * 序列号 - 32 位
-     * Incremented per IPFIX message from this exporter
-     * 导出器发送的 IPFIX 消息序列号
-     */
     bit<32> sequence_number;
-    
-    /* Observation Domain ID - 32 bits
-     * 观察域 ID - 32 位
-     * Identifies the exporter's observation domain
-     * 标识导出器的观察域
-     */
     bit<32> observation_domain_id;
 }
 
-/**
- * IPFIX Set Header (FlowSet Header)
- * IPFIX 集合头(流集合头)
+/* Set prefix, four bytes. Length includes prefix, records and any padding.
+ * IDs 0 and 1 are unused. IDs 4..255 are reserved for future use. Data Sets
+ * use their Template ID (256..65535), for both ordinary and Options data.
+ * Set padding is sent as zero and is shorter than any record in the Set.
+ * Reception of nonzero padding alone does not make a message malformed.
+ * Sets have no mandatory alignment. Locate the next Set using Length.
  */
 header ipfix_set_header {
-    /* Set ID - 16 bits
-     * 集合 ID - 16 位
-     * Identifies the type of the set:
-     *   - 2 for Template Sets
-     *   - 3 for Options Template Sets
-     *   - 256-65535 for Data Sets
-     * 标识集合类型:
-     *   - 2 表示模板集合
-     *   - 3 表示选项模板集合
-     *   - 256-65535 表示数据集合
-     */
     bit<16> set_id;
-    
-    /* Length - 16 bits
-     * 长度 - 16 位
-     * Total length of the set in bytes
-     * 集合的总字节长度
-     */
     bit<16> length;
 }
 
-/**
- * IPFIX Template Record Header
- * IPFIX 模板记录头
+// Complete Set view. Capacity is (65535 - 16 - 4) bytes for records and padding.
+header ipfix_set_t {
+    bit<16> set_id;
+    bit<16> length;
+    varbit<524120> records_and_padding;
+}
+
+/* Ordinary Template prefix, four bytes, followed by field_count specifiers.
+ * Template IDs 256..65535 are scoped to Transport Session + Observation Domain
+ * and share one namespace with Options Templates. Field order is significant.
  */
 header ipfix_template_header {
-    /* Template ID - 16 bits
-     * 模板 ID - 16 位
-     * Identifies this template (>= 256 for data templates)
-     * 标识此模板(>=256 表示数据模板)
-     */
     bit<16> template_id;
-    
-    /* Field Count - 16 bits
-     * 字段计数 - 16 位
-     * Number of fields in this template record
-     * 此模板记录中的字段数
-     */
     bit<16> field_count;
 }
 
-/**
- * IPFIX Template Field Specifier
- * IPFIX 模板字段定义
+/* Options Template prefix, six bytes, followed by field_count specifiers.
+ * The first scope_field_count are scope fields, included in field_count.
+ * A definition has 1 <= scope_field_count <= field_count.
+ */
+header ipfix_options_template_header_t {
+    bit<16> template_id;
+    bit<16> field_count;
+    bit<16> scope_field_count;
+}
+
+/* Withdrawal is four bytes for both Template kinds: Template ID and zero
+ * Field Count, without Scope Field Count. ID 2 in Set 2 withdraws all ordinary
+ * Templates. ID 3 in Set 3 withdraws all Options Templates. Individual IDs
+ * are 256..65535. Withdrawals are used over TCP/SCTP, not UDP.
+ */
+typedef ipfix_template_header ipfix_template_withdrawal_t;
+
+/* Common Field Specifier prefix, four bytes. E = 0 identifies an IANA IE and
+ * has no Enterprise Number. E = 1 is followed by a four-byte Enterprise Number.
+ * Field Length is the encoded value size, or 65535 for a variable-length IE.
+ * Integer fields may use reduced-size encoding, so the Template sets width.
  */
 header ipfix_field_specifier {
-    /* Enterprise Bit - 1 bit
-     * 企业位 - 1 位
-     * 0 = IETF defined field, 1 = vendor defined field
-     * 0 表示 IETF 定义字段，1 表示厂商定义字段
-     */
     bit<1> enterprise_bit;
-    
-    /* Field ID - 15 bits
-     * 字段 ID - 15 位
-     * Identifies the field (IANA assigned)
-     * 标识字段(由 IANA 分配)
-     */
     bit<15> field_id;
-    
-    /* Field Length - 16 bits
-     * 字段长度 - 16 位
-     * Length of the field in bytes (or 0xFFFF for variable length)
-     * 字段的字节长度(0xFFFF 表示可变长度)
-     */
     bit<16> field_length;
-    
-    /* Enterprise Number - 32 bits (optional)
-     * 企业号 - 32 位(可选)
-     * Present if enterprise_bit=1 (vendor defined field)
-     * 当 enterprise_bit=1 时存在(厂商定义字段)
-     */
-    bit<32> enterprise_number; // Conditional field
 }
 
-/**
- * IPFIX Data Record
- * IPFIX 数据记录
+header ipfix_enterprise_number_t {
+    bit<32> enterprise_number;
+}
+
+// Complete eight-byte Field Specifier for E = 1.
+header ipfix_enterprise_field_specifier_t {
+    bit<1> enterprise_bit;
+    bit<15> field_id;
+    bit<16> field_length;
+    bit<32> enterprise_number;
+}
+
+/* Variable-length IE prefix. Values 0..254 give the value length directly.
+ * A first byte of 255 selects the three-byte form below. Length excludes
+ * the one or three prefix bytes. The extended form can encode 0..65535.
  */
-header ipfix_data_record {
-    /* Fields - variable length
-     * 字段 - 可变长度
-     * Actual flow data as specified by the template
-     * 根据模板定义的实际流数据
-     */
-    varbit<65535> fields;  // Maximum size limited by set length
+header ipfix_variable_length_t {
+    bit<8> length;
 }
 
-/**
- * Common Flow Fields (Example)
- * 常见流字段定义(示例)
+header ipfix_variable_length_extended_t {
+    bit<8> marker; // 255
+    bit<16> length;
+}
+
+// One Data Record, with order and encoded size supplied by its cached Template.
+header ipfix_data_record {
+    varbit<524120> fields;
+}
+
+/* Example 29-byte record layout, all E = 0, with IE/length pairs in order:
+ * 8/4, 12/4, 7/2, 11/2, 4/1, 2/8, 1/8. Use this view only when the Template
+ * specifies exactly this order and these lengths. Records have no fixed pad.
  */
 header ipfix_common_flow_fields {
-    /* Source IPv4 Address - 32 bits
-     * 源 IPv4 地址 - 32 位
-     * Field ID 8 in IANA registry
-     * IANA 注册表中的字段 ID 8
-     */
     bit<32> source_ipv4_address;
-    
-    /* Destination IPv4 Address - 32 bits
-     * 目的 IPv4 地址 - 32 位
-     * Field ID 12 in IANA registry
-     * IANA 注册表中的字段 ID 12
-     */
     bit<32> destination_ipv4_address;
-    
-    /* Source Transport Port - 16 bits
-     * 源传输端口 - 16 位
-     * Field ID 7 in IANA registry
-     * IANA 注册表中的字段 ID 7
-     */
     bit<16> source_transport_port;
-    
-    /* Destination Transport Port - 16 bits
-     * 目的传输端口 - 16 位
-     * Field ID 11 in IANA registry
-     * IANA 注册表中的字段 ID 11
-     */
     bit<16> destination_transport_port;
-    
-    /* Protocol Identifier - 8 bits
-     * 协议标识符 - 8 位
-     * Field ID 4 in IANA registry
-     * IANA 注册表中的字段 ID 4
-     */
     bit<8> protocol_identifier;
-    
-    /* Packet Delta Count - 64 bits
-     * 数据包增量计数 - 64 位
-     * Field ID 2 in IANA registry
-     * IANA 注册表中的字段 ID 2
-     */
     bit<64> packet_delta_count;
-    
-    /* Octet Delta Count - 64 bits
-     * 字节增量计数 - 64 位
-     * Field ID 1 in IANA registry
-     * IANA 注册表中的字段 ID 1
-     */
     bit<64> octet_delta_count;
 }
 
-/**
- * IPFIX Transport Header (typically over UDP or SCTP)
- * IPFIX 传输头(通常基于 UDP 或 SCTP)
- */
-header ipfix_transport_header {
-    /* Source Port - 16 bits
-     * 源端口 - 16 位
-     * Typically 4739 for IPFIX
-     * IPFIX 通常使用 4739 端口
-     */
-    bit<16> source_port;
-    
-    /* Destination Port - 16 bits
-     * 目的端口 - 16 位
-     * Typically 4739 for IPFIX
-     * IPFIX 通常使用 4739 端口
-     */
-    bit<16> destination_port;
-    
-    /* Length - 16 bits
-     * 长度 - 16 位
-     * Length of UDP payload
-     * UDP 负载长度
-     */
-    bit<16> length;
-    
-    /* Checksum - 16 bits
-     * 校验和 - 16 位
-     * UDP checksum (optional for IPv4)
-     * UDP 校验和(IPv4 下可选)
-     */
-    bit<16> checksum;
+// UDP view only. UDP Length includes its eight-byte header. TCP/SCTP are separate.
+typedef udp_header ipfix_transport_header;
+
+struct ipfix_headers_t {
+    ipfix_header message;
+    ipfix_set_t[16] sets;
 }
+
+struct ipfix_metadata_t {
+    bit<32> remaining_bytes;
+    bit<5> parsed_sets;
+    bit<5> template_sets;
+    bit<5> options_template_sets;
+    bit<5> data_sets;
+    bit<5> other_sets;
+    bool framing_complete;
+}
+
+/**
+ * Bounded Set framing and local delivery (P4_16, v1model).
+ * The cursor starts at Version. message_bytes bounds one complete message
+ * supplied after TCP/SCTP reassembly or UDP validation, and TLS/DTLS decoding
+ * when used. The UDP caller uses the complete datagram payload as the bound
+ * and validates the UDP checksum, including IPv4. Transport headers and link
+ * padding are outside message_bytes. Following stream data belongs to the caller.
+ *
+ * Up to 16 Sets are extracted. remaining_bytes identifies the untouched
+ * remainder at the limit. Emit message and sets, then the original remainder.
+ * Set bodies, padding and future Set types stay intact. The collector decodes
+ * Templates, withdrawals, variable-length values and reduced-size integers.
+ * It keys Templates by Transport Session, Observation Domain and Template ID,
+ * and tracks sequence numbers per stream and Observation Domain. session_id
+ * identifies the configured Transport Session independently of wire identifiers.
+ */
+/*
+parser ipfix_parser(packet_in pkt, out ipfix_headers_t hdr,
+                    out ipfix_metadata_t meta, in bit<32> message_bytes) {
+    bit<32> remaining;
+
+    state start {
+        meta.remaining_bytes = message_bytes;
+        meta.parsed_sets = 0;
+        meta.template_sets = 0;
+        meta.options_template_sets = 0;
+        meta.data_sets = 0;
+        meta.other_sets = 0;
+        meta.framing_complete = false;
+        verify(message_bytes >= 16, error.HeaderTooShort);
+        verify(message_bytes <= IPFIX_MAX_MESSAGE_BYTES, error.NoMatch);
+        pkt.extract(hdr.message);
+        verify(hdr.message.version == IPFIX_VERSION, error.NoMatch);
+        verify((bit<32>)hdr.message.length == message_bytes, error.NoMatch);
+        remaining = message_bytes - 16;
+        transition check_set;
+    }
+
+    state check_set {
+        meta.remaining_bytes = remaining;
+        verify(remaining == 0 || remaining >= 4, error.HeaderTooShort);
+        transition select(remaining, meta.parsed_sets) {
+            (0, _): end_message;
+            (_, 16): accept;
+            default: parse_set;
+        }
+    }
+
+    state end_message {
+        meta.framing_complete = true;
+        transition accept;
+    }
+
+    state parse_set {
+        ipfix_set_header prefix;
+        prefix = pkt.lookahead<ipfix_set_header>();
+        verify(prefix.set_id >= 2, error.NoMatch);
+        verify(prefix.length >= 4, error.NoMatch);
+        verify((bit<32>)prefix.length <= remaining, error.HeaderTooShort);
+        pkt.extract(hdr.sets.next, ((bit<32>)prefix.length - 4) * 8);
+        if (prefix.set_id == ipfix_set_id.TEMPLATE) {
+            meta.template_sets = meta.template_sets + 1;
+        } else if (prefix.set_id == ipfix_set_id.OPTIONS_TEMPLATE) {
+            meta.options_template_sets = meta.options_template_sets + 1;
+        } else if (prefix.set_id >= IPFIX_DATA_SET_MIN_ID) {
+            meta.data_sets = meta.data_sets + 1;
+        } else {
+            meta.other_sets = meta.other_sets + 1;
+        }
+        meta.parsed_sets = meta.parsed_sets + 1;
+        remaining = remaining - (bit<32>)prefix.length;
+        transition check_set;
+    }
+}
+
+control ipfix_control(inout ipfix_headers_t hdr, in ipfix_metadata_t meta,
+                      inout standard_metadata_t standard_metadata,
+                      in bit<32> session_id) {
+    action deliver_ipfix(bit<9> collector_port) {
+        standard_metadata.egress_spec = collector_port;
+    }
+
+    action drop_ipfix() {
+        mark_to_drop(standard_metadata);
+    }
+
+    table ipfix_collectors {
+        key = {
+            session_id: exact;
+            hdr.message.observation_domain_id: exact;
+        }
+        actions = {
+            deliver_ipfix;
+            drop_ipfix;
+        }
+        default_action = drop_ipfix();
+    }
+
+    apply {
+        if (standard_metadata.parser_error != error.NoError) {
+            drop_ipfix();
+        } else {
+            ipfix_collectors.apply();
+        }
+    }
+}
+*/
+
+#endif
