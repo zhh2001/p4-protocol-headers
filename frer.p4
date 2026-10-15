@@ -1,60 +1,109 @@
-/**********************************************************
- * FRER Header (IEEE 802.1CB)                            
- * 帧复制消除协议报头 - 实现高可靠性冗余传输                  
- * Frame Replication and Elimination for Reliability      
- * Ensures zero packet loss in mission-critical networks  
- **********************************************************/
-
-header frer_t {
-    // ---- 冗余控制字段 (8 字节) ----
-    bit<32> stream_id;        // Stream identifier (5-tuple hash)     流唯一标识符（基于五元组哈希）
-    bit<16> sequence_num;     // Sequence number for ordering         序列号（防止乱序/重复）
-    bit<8>  redundancy_mode;  // Redundancy path configuration        冗余模式（0=单路径, 1=双路径, 2=N路径）
-    bit<8>  path_id;          // Path identifier (Primary/Secondary)  路径标识（区分主备路径）
-
-    // ---- 故障检测字段 (4 字节) ----
-    bit<24> crc_check;  // Fast CRC for error detection  快速 CRC 校验（用于即时错误检测）
-    bit<8>  ttl;        // Time-to-live for redundancy   生存周期（限制冗余传播跳数）
-
-    // ---- 消除决策字段 ----
-    bit<1>  elimination_flag;  // Elimination decision flag        消除标记（1=需执行消除操作）
-    bit<7>  reserved;          // Reserved for alignment           保留字段（对齐填充）
-    bit<32> timestamp;         // Reception timestamp (IEEE 1588)  接收时间戳（用于消除决策）
-}
-
-
-// Example: 多路径复制逻辑 (Pseudocode)
-/*
-action replicate_frames() {
-    if (hdr.frer.redundancy_mode >= 1) {
-        // 主路径转发原始帧
-        clone_packet(CloneType.I2E, 0);  
-        // 冗余路径生成复制帧
-        hdr.frer.path_id = 1;  // 标记为冗余路径
-        hdr.frer.sequence_num = hdr.frer.sequence_num + 1;
-        enqueue_to_secondary_port();
-    }
-}
-*/
-
-// Example: 消除决策机制 (Pseudocode)
-/*
-table elimination_decision {
-    key = { 
-        hdr.frer.stream_id : exact;
-        hdr.frer.sequence_num : range;
-    }
-    actions = { keep_primary, keep_secondary, discard_duplicate }
-    const entries = {
-        0x12345678 && 100..200 -> keep_primary;  // 主路径优先
-    }
-}
-*/
+#ifndef P4_PROTOCOL_HEADERS_FRER_P4
+#define P4_PROTOCOL_HEADERS_FRER_P4
 
 /**
- * 典型应用场景
- *   1. 车载制动系统冗余：通过 `redundancy_mode=2` 配置三重路径复制，ADAS 的紧急制动指令（StreamID=0xA5）在中央网关-左/右域控制器-执行器之间形成冗余三角传输，结合 `timestamp` 字段实现 10μs 内消除重复帧。
- *   2. 智能电网差动保护：在 IEC 61850 GOOSE 跳闸命令中，主路径（光纤）和备路径（电力线载波）的 `path_id` 标识差异，利用 `crc_check` 实现 20ns 级错误检测，保障变电站保护动作成功率>99.9999%。
- *   3. 5G前传网络容错：为 eCPRI 的 IQ 数据流配置N=4路径冗余，通过 `ttl=3` 限制跨基站传播，在 AAU 侧基于 FPGA 实现纳秒级消除决策，满足 3GPP 定义的 1e-9 误码率要求。
- *   4. 航空电子网络：在 AFDX 网络中替代传统双冗余架构，通过 `sequence_num` 字段实现 ARINC 664 Part7 兼容的确定性消除，减少 50% 的交换机缓存需求。
+ * IEEE 802.1CB-2017 Redundancy Tag (Clause 7.8)
+ * FRER 冗余标签与有界解析分流示例
  */
+const bit<16> ETHERTYPE_FRER = 16w0xF1C1;
+
+/* Complete R-TAG, six bytes including its EtherType.
+ * Reserved is transmitted as zero and ignored on receipt.
+ * Sequence Number carries the low 16 bits of sequence_number.
+ * The original frame's Type/Length field follows the tag. Multiple R-TAGs
+ * can occur in a frame, with placement determined by the configured layers.
+ */
+header frer_t {
+    bit<16> tpid;
+    bit<16> reserved;
+    bit<16> sequence_num;
+}
+
+struct frer_headers_t {
+    frer_t[4] rtag;
+}
+
+struct frer_metadata_t {
+    bit<8> tag_count;
+    bit<32> tag_bytes;
+    bit<32> remaining_bytes;
+    bit<16> next_type_or_length;
+}
+
+/**
+ * R-TAG parsing and local delivery (P4_16, v1model).
+ * The caller positions the cursor at the first 0xF1C1 EtherType, before
+ * extracting that field, and supplies the bounded remaining frame length
+ * excluding FCS. The example parses up to four consecutive R-TAGs. It leaves
+ * the following Type/Length and payload at the cursor for the next parser.
+ * VLAN tags can precede or follow an R-TAG according to the configured stack.
+ * Emit rtag, then the original remainder to preserve the frame.
+ *
+ * stream_handle is local metadata from Stream identification. The selected
+ * owner manages sequence generation, replication and recovery history with
+ * its configured window and reset timers. Sequence generation runs once per
+ * original frame, wrapping modulo 65536. All replicas carry the same sequence
+ * number at each redundancy layer.
+ */
+/*
+parser frer_parser(packet_in pkt, out frer_headers_t hdr,
+                   out frer_metadata_t meta, in bit<32> frame_bytes) {
+    state start {
+        meta.tag_count = 0;
+        meta.tag_bytes = 0;
+        meta.remaining_bytes = frame_bytes;
+        meta.next_type_or_length = 0;
+        verify(meta.remaining_bytes >= 2, error.HeaderTooShort);
+        meta.next_type_or_length = pkt.lookahead<bit<16>>();
+        verify(meta.next_type_or_length == ETHERTYPE_FRER, error.NoMatch);
+        transition parse_tag;
+    }
+
+    state parse_tag {
+        verify(meta.tag_count < 4, error.StackOutOfBounds);
+        verify(meta.remaining_bytes >= 6, error.HeaderTooShort);
+        pkt.extract(hdr.rtag.next);
+        meta.tag_count = meta.tag_count + 1;
+        meta.tag_bytes = meta.tag_bytes + 6;
+        meta.remaining_bytes = meta.remaining_bytes - 6;
+        transition next_protocol;
+    }
+
+    state next_protocol {
+        verify(meta.remaining_bytes >= 2, error.HeaderTooShort);
+        meta.next_type_or_length = pkt.lookahead<bit<16>>();
+        transition select(meta.next_type_or_length) {
+            ETHERTYPE_FRER: parse_tag;
+            default: accept;
+        }
+    }
+}
+
+control frer_control(inout frer_headers_t hdr, in frer_metadata_t meta,
+                     inout standard_metadata_t standard_metadata,
+                     in bit<32> stream_handle) {
+    action deliver_frer(bit<9> port) {
+        standard_metadata.egress_spec = port;
+    }
+    action drop_frer() {
+        mark_to_drop(standard_metadata);
+    }
+    table frer_streams {
+        key = {
+            standard_metadata.ingress_port: exact;
+            stream_handle: exact;
+        }
+        actions = { deliver_frer; drop_frer; }
+        default_action = drop_frer();
+    }
+    apply {
+        if (standard_metadata.parser_error != error.NoError) {
+            drop_frer();
+        } else {
+            frer_streams.apply();
+        }
+    }
+}
+*/
+
+#endif
