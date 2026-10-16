@@ -114,6 +114,8 @@ struct ntp_metadata_t {
  * byte count as ntp_length. Include udp.p4 separately for transport parsing.
  * The headers struct contains ntp_header ntp_header. Metadata contains
  * ntp_metadata_t ntp. This example parses NTPv3/v4 time packets in modes 1-5.
+ * Pass hdr.ntp_header and meta.ntp to the parser's out parameters so only
+ * NTP outputs are initialized.
  *
  * Control and private packets stay entirely opaque for their own handlers.
  * Those handlers validate their version and format. Mode zero is reserved.
@@ -127,22 +129,22 @@ struct ntp_metadata_t {
  * responses and clock adjustment belong to the NTP application and time source.
  */
 /*
-parser ntp_parser(packet_in pkt, inout headers hdr, inout metadata meta,
+parser ntp_parser(packet_in pkt, out ntp_header ntp, out ntp_metadata_t meta,
                   in bit<16> ntp_length) {
     bit<8> first_octet;
 
     state start {
-        hdr.ntp_header.setInvalid();
-        meta.ntp.version = 0;
-        meta.ntp.mode = 0;
-        meta.ntp.opaque_length = 0;
+        ntp.setInvalid();
+        meta.version = 0;
+        meta.mode = 0;
+        meta.opaque_length = 0;
         verify(ntp_length >= 1, error.HeaderTooShort);
         first_octet = pkt.lookahead<bit<8>>();
-        meta.ntp.version = first_octet[5:3];
-        meta.ntp.mode = first_octet[2:0];
-        meta.ntp.opaque_length = ntp_length;
-        verify(meta.ntp.mode != 0, error.NoMatch);
-        transition select(meta.ntp.mode) {
+        meta.version = first_octet[5:3];
+        meta.mode = first_octet[2:0];
+        meta.opaque_length = ntp_length;
+        verify(meta.mode != 0, error.NoMatch);
+        transition select(meta.mode) {
             6: accept;
             7: accept;
             default: parse_time;
@@ -150,10 +152,10 @@ parser ntp_parser(packet_in pkt, inout headers hdr, inout metadata meta,
     }
 
     state parse_time {
-        verify(meta.ntp.version == 3 || meta.ntp.version == 4, error.NoMatch);
+        verify(meta.version == 3 || meta.version == 4, error.NoMatch);
         verify(ntp_length >= 48, error.HeaderTooShort);
-        pkt.extract(hdr.ntp_header);
-        meta.ntp.opaque_length = ntp_length - 48;
+        pkt.extract(ntp);
+        meta.opaque_length = ntp_length - 48;
         transition accept;
     }
 }
