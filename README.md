@@ -55,17 +55,20 @@ A successful run returns exit status 0. Any failed check or invocation returns a
 
 #### Regression Tests
 
-The checker's regression tests require only Python. Run them from the repository root:
+Run the regression suite from the repository root:
 
 ```sh
 python3 -B -m unittest discover -s tests -v
 ```
 
-The tests use simulated compilers and cover reference validation, command-line options, error reporting, timeouts and temporary file cleanup.
+- [Checker tests](tests/test_check_headers.py) require only Python. They use simulated compilers to cover reference validation, command-line options, error reporting, timeouts and temporary file cleanup.
+- [Example compilation tests](tests/test_protocol_examples.py) extract the commented parser and control examples and compile seven combinations as v1model programs with both `p4test` and `p4c-bm2-ss`. They cover Ethernet/VLAN, IPv4/IPv6 forwarding, ARP, DNS over UDP/TCP, GRE and NTP.
+
+Example compilation requires the same p4c tools and include files as the full check. If either compiler is missing, these tests are reported as skipped while the checker tests still run.
 
 #### CI
 
-The [Header checks workflow](.github/workflows/check-headers.yml) runs on pushes, pull requests and manual triggers. It runs the regression tests first, then checks references and compiles the definitions using a p4c image pinned by version and digest.
+The [Header checks workflow](.github/workflows/check-headers.yml) runs on pushes, pull requests and manual triggers. It runs the checker tests and example compilation tests first, then checks references and compiles the definitions using a p4c image pinned by version and digest.
 
 ### Need Help?
 
@@ -138,17 +141,20 @@ python3 scripts/check_headers.py --references-only
 
 #### 回归测试
 
-检查脚本的回归测试仅需 Python。在仓库根目录运行：
+在仓库根目录运行回归测试：
 
 ```sh
 python3 -B -m unittest discover -s tests -v
 ```
 
-测试使用模拟编译器，覆盖引用检查、命令行参数、错误报告、超时和临时文件清理。
+- [检查脚本测试](tests/test_check_headers.py)仅需 Python，使用模拟编译器，覆盖引用检查、命令行参数、错误报告、超时和临时文件清理。
+- [示例编译测试](tests/test_protocol_examples.py)提取注释中的解析器和控制流程示例，组合为七个 v1model 程序，并分别使用 `p4test` 和 `p4c-bm2-ss` 编译。覆盖 Ethernet/VLAN、IPv4/IPv6 转发、ARP、基于 UDP/TCP 的 DNS、GRE 和 NTP。
+
+示例编译与完整检查使用相同的 p4c 工具和配套头文件。缺少任一编译器时，这部分测试会明确显示为跳过，检查脚本测试仍会执行。
 
 #### CI
 
-[Header checks 工作流](.github/workflows/check-headers.yml)由推送、PR 和手动运行触发，先执行回归测试，再检查引用并编译定义。p4c 镜像固定版本和摘要。
+[Header checks 工作流](.github/workflows/check-headers.yml)由推送、PR 和手动运行触发，先执行检查脚本测试和示例编译测试，再检查引用并编译定义。p4c 镜像固定版本和摘要。
 
 ### 遇到问题？
 
