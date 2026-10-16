@@ -1,6 +1,6 @@
 # Changelog / 版本变更记录
 
-## Unreleased / 未发布
+## v3.0.0
 
 Changes since `v2.0.0` / 相比 `v2.0.0` 的主要变化。
 
