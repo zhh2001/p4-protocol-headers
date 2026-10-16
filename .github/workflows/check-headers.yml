@@ -23,5 +23,8 @@ jobs:
           p4test --version
           p4c-bm2-ss --version
 
+      - name: Run checker regression tests
+        run: python3 -B -m unittest discover -s tests -v
+
       - name: Check references and compile headers
         run: python3 scripts/check_headers.py
