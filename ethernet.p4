@@ -57,10 +57,12 @@ header ethernet_trailer {
  * The packet cursor must point to the destination MAC address.
  * The enclosing headers struct contains ethernet_header ethernet_header
  * and dot1q_header[2] vlan. This example handles up to two VLAN tags.
+ * Pass the headers struct as an output so headers start invalid and the
+ * VLAN stack starts at index zero before parsing this frame.
  * It dispatches on the innermost EtherType and leaves FCS handling to the target.
  */
 /*
-parser ethernet_parser(packet_in pkt, inout headers hdr) {
+parser ethernet_parser(packet_in pkt, out headers hdr) {
     bit<16> payload_type;
 
     state start {
