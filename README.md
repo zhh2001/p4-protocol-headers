@@ -26,6 +26,33 @@ Include a header file in your P4 program:
 
 Parser and control examples are kept in comments. Add the needed example to your program with the header structures, metadata and inputs described in that file.
 
+### Checks
+
+Requirements: Python 3.8 or newer and the p4c tools `p4test` and `p4c-bm2-ss` on `PATH`, with their `core.p4` and `v1model.p4` include files installed. The script uses only the Python standard library.
+
+Run the full check from the repository root:
+
+```sh
+python3 scripts/check_headers.py
+```
+
+The script checks the README catalogue and file counts, include paths and guards, include cycles, and parameter types, constants and enum members referenced in the commented examples. It then compiles the definitions in minimal P4_16 programs, both individually and together in several include orders, using both compilers.
+
+For reference checks only, Python is sufficient:
+
+```sh
+python3 scripts/check_headers.py --references-only
+```
+
+Options:
+
+- `--jobs N`: number of parallel compiler processes, defaulting to the CPU count capped at 4.
+- `--timeout SECONDS`: time limit for each compilation, defaulting to 60 seconds.
+- `--root PATH`: library directory, defaulting to the repository containing the script.
+- `--help`: show all options.
+
+A successful run returns exit status 0. Any failed check or invocation returns a nonzero status.
+
 ### Need Help?
 
 Open an Issue if you:
@@ -67,6 +94,33 @@ PRs are welcome!
 ```
 
 各文件中的解析器和控制流程示例以注释保存。使用时，将所需示例加入程序，并按文件说明提供报头结构、元数据和输入参数。
+
+### 检查
+
+依赖 Python 3.8 或更新版本，以及 p4c 提供的 `p4test` 和 `p4c-bm2-ss`。两个编译器需位于 `PATH` 中，并已安装配套的 `core.p4` 和 `v1model.p4` 头文件。脚本仅使用 Python 标准库。
+
+在仓库根目录运行完整检查：
+
+```sh
+python3 scripts/check_headers.py
+```
+
+脚本检查 README 目录与文件数量、引用路径与包含保护、循环引用，以及注释示例引用的参数类型、常量和枚举成员。随后使用两个编译器，将定义放入最小 P4_16 程序，分别检查单文件引用和多种包含顺序的全量联合引用。
+
+仅检查引用时，只需 Python：
+
+```sh
+python3 scripts/check_headers.py --references-only
+```
+
+可用参数：
+
+- `--jobs N`：并行编译进程数，默认取 CPU 数量，上限为 4。
+- `--timeout SECONDS`：每次编译的超时秒数，默认为 60。
+- `--root PATH`：库目录，默认为脚本所在的仓库。
+- `--help`：查看全部参数。
+
+全部通过时退出状态为 0，检查或调用失败时为非零状态。
 
 ### 遇到问题？
 
