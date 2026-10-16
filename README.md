@@ -53,6 +53,20 @@ Options:
 
 A successful run returns exit status 0. Any failed check or invocation returns a nonzero status.
 
+#### Regression Tests
+
+The checker's regression tests require only Python. Run them from the repository root:
+
+```sh
+python3 -B -m unittest discover -s tests -v
+```
+
+The tests use simulated compilers and cover reference validation, command-line options, error reporting, timeouts and temporary file cleanup.
+
+#### CI
+
+The [Header checks workflow](.github/workflows/check-headers.yml) runs on pushes, pull requests and manual triggers. It runs the regression tests first, then checks references and compiles the definitions using a p4c image pinned by version and digest.
+
 ### Need Help?
 
 Open an Issue if you:
@@ -121,6 +135,20 @@ python3 scripts/check_headers.py --references-only
 - `--help`：查看全部参数。
 
 全部通过时退出状态为 0，检查或调用失败时为非零状态。
+
+#### 回归测试
+
+检查脚本的回归测试仅需 Python。在仓库根目录运行：
+
+```sh
+python3 -B -m unittest discover -s tests -v
+```
+
+测试使用模拟编译器，覆盖引用检查、命令行参数、错误报告、超时和临时文件清理。
+
+#### CI
+
+[Header checks 工作流](.github/workflows/check-headers.yml)由推送、PR 和手动运行触发，先执行回归测试，再检查引用并编译定义。p4c 镜像固定版本和摘要。
 
 ### 遇到问题？
 
