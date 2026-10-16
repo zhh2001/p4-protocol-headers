@@ -65,6 +65,8 @@ header gre_sequence_header {
  * The outer parser handles IP options, extensions and fragmentation.
  * The headers struct contains gre_header gre_header, gre_checksum_header
  * gre_checksum, gre_key_header gre_key and gre_sequence_header gre_sequence.
+ * Pass hdr.gre_header, hdr.gre_checksum, hdr.gre_key and hdr.gre_sequence
+ * to the parser's out parameters so only GRE outputs are initialized.
  *
  * This example supports version 0 without legacy routing fields.
  * Bits 1, 4 and 5 must be zero. Reserved bits 6-12 are ignored on receipt.
@@ -73,52 +75,55 @@ header gre_sequence_header {
  * verification over the full GRE packet and sequence tracking.
  */
 /*
-parser gre_parser(packet_in pkt, inout headers hdr) {
+parser gre_parser(packet_in pkt, out gre_header gre,
+                   out gre_checksum_header gre_checksum,
+                   out gre_key_header gre_key,
+                   out gre_sequence_header gre_sequence) {
     state start {
-        hdr.gre_checksum.setInvalid();
-        hdr.gre_key.setInvalid();
-        hdr.gre_sequence.setInvalid();
-        pkt.extract(hdr.gre_header);
-        verify(hdr.gre_header.version == 0, error.NoMatch);
-        verify(hdr.gre_header.reserved1 == 0
-               && hdr.gre_header.reserved2[8:7] == 0, error.NoMatch);
-        transition select(hdr.gre_header.checksum_present) {
+        gre_checksum.setInvalid();
+        gre_key.setInvalid();
+        gre_sequence.setInvalid();
+        pkt.extract(gre);
+        verify(gre.version == 0, error.NoMatch);
+        verify(gre.reserved1 == 0
+               && gre.reserved2[8:7] == 0, error.NoMatch);
+        transition select(gre.checksum_present) {
             1: parse_checksum;
             default: check_key;
         }
     }
 
     state parse_checksum {
-        pkt.extract(hdr.gre_checksum);
+        pkt.extract(gre_checksum);
         transition check_key;
     }
 
     state check_key {
-        transition select(hdr.gre_header.key_present) {
+        transition select(gre.key_present) {
             1: parse_key;
             default: check_sequence;
         }
     }
 
     state parse_key {
-        pkt.extract(hdr.gre_key);
+        pkt.extract(gre_key);
         transition check_sequence;
     }
 
     state check_sequence {
-        transition select(hdr.gre_header.sequence_present) {
+        transition select(gre.sequence_present) {
             1: parse_sequence;
             default: parse_payload;
         }
     }
 
     state parse_sequence {
-        pkt.extract(hdr.gre_sequence);
+        pkt.extract(gre_sequence);
         transition parse_payload;
     }
 
     state parse_payload {
-        transition select(hdr.gre_header.protocol) {
+        transition select(gre.protocol) {
             gre_protocol_type.IP: parse_inner_ip;
             gre_protocol_type.IPV6: parse_inner_ipv6;
             gre_protocol_type.MPLS: parse_mpls;
