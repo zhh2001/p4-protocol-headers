@@ -121,14 +121,16 @@ header dns_tcp_length {
  * P4 Parser Logic for DNS
  * This example extracts only the fixed DNS header and preserves section counts.
  * The packet cursor must point to the DNS transaction ID.
+ * Pass hdr.dns_header as the dns_header output parameter so only the DNS
+ * header is initialized.
  * The caller selects DNS traffic and handles framing, bounds and parser errors.
  * For TCP, consume the length prefix after reassembling the DNS message.
  * Include udp.p4 or tcp.p4 separately when parsing transport headers.
  */
 /*
-parser dns_parser(packet_in pkt, inout headers hdr) {
+parser dns_parser(packet_in pkt, out dns_header dns) {
     state start {
-        pkt.extract(hdr.dns_header);
+        pkt.extract(dns);
         transition accept;
     }
 }
