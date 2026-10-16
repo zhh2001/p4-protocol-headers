@@ -114,6 +114,8 @@ struct arp_metadata_t {
  *
  * headers contains arp_prefix arp, arp_ethernet_ipv4_addresses arp_ipv4
  * and arp_addresses arp_addresses. metadata contains arp_metadata_t arp.
+ * Pass hdr.arp, hdr.arp_ipv4, hdr.arp_addresses and meta.arp to the parser's
+ * out parameters so only ARP outputs are initialized.
  * The example checks the prefix, address bounds, Ethernet HLEN 6 and IPv4
  * PLEN 4. The Ethernet/IPv4 tuple selects typed addresses. Other compatible
  * tuples retain their address bytes without interpreting them. The
@@ -128,47 +130,49 @@ struct arp_metadata_t {
  * application. No additional Gratuitous ARP or Proxy ARP header is present.
  */
 /*
-parser arp_parser(packet_in pkt, inout headers hdr, inout metadata meta,
+parser arp_parser(packet_in pkt, out arp_prefix arp,
+                   out arp_ethernet_ipv4_addresses arp_ipv4,
+                   out arp_addresses addresses, out arp_metadata_t meta,
                    in bit<16> link_type, in bit<32> payload_length) {
     bit<32> address_bytes;
 
     state start {
-        hdr.arp.setInvalid();
-        hdr.arp_ipv4.setInvalid();
-        hdr.arp_addresses.setInvalid();
-        meta.arp.link_type = link_type;
-        meta.arp.ethernet_ipv4 = 0;
-        meta.arp.address_bytes = 0;
-        meta.arp.parsed_bytes = 0;
-        meta.arp.trailing_bytes = 0;
+        arp.setInvalid();
+        arp_ipv4.setInvalid();
+        addresses.setInvalid();
+        meta.link_type = link_type;
+        meta.ethernet_ipv4 = 0;
+        meta.address_bytes = 0;
+        meta.parsed_bytes = 0;
+        meta.trailing_bytes = 0;
         verify(link_type == ARP_ETHER_TYPE || link_type == RARP_ETHER_TYPE,
                error.NoMatch);
         verify(payload_length >= 8, error.HeaderTooShort);
-        pkt.extract(hdr.arp);
-        verify(hdr.arp.hw_type != 1 || hdr.arp.hw_addr_len == 6,
+        pkt.extract(arp);
+        verify(arp.hw_type != 1 || arp.hw_addr_len == 6,
                error.NoMatch);
-        verify(hdr.arp.proto_type != 16w0x0800 || hdr.arp.proto_addr_len == 4,
+        verify(arp.proto_type != 16w0x0800 || arp.proto_addr_len == 4,
                error.NoMatch);
-        address_bytes = ((bit<32>)hdr.arp.hw_addr_len
-            + (bit<32>)hdr.arp.proto_addr_len) * 2;
+        address_bytes = ((bit<32>)arp.hw_addr_len
+            + (bit<32>)arp.proto_addr_len) * 2;
         verify(address_bytes <= payload_length - 8, error.HeaderTooShort);
-        meta.arp.address_bytes = address_bytes;
-        meta.arp.parsed_bytes = 8 + address_bytes;
-        meta.arp.trailing_bytes = payload_length - 8 - address_bytes;
-        transition select(hdr.arp.hw_type, hdr.arp.proto_type) {
+        meta.address_bytes = address_bytes;
+        meta.parsed_bytes = 8 + address_bytes;
+        meta.trailing_bytes = payload_length - 8 - address_bytes;
+        transition select(arp.hw_type, arp.proto_type) {
             (1, 0x0800): parse_ethernet_ipv4;
             default: parse_generic_addresses;
         }
     }
 
     state parse_ethernet_ipv4 {
-        pkt.extract(hdr.arp_ipv4);
-        meta.arp.ethernet_ipv4 = 1;
+        pkt.extract(arp_ipv4);
+        meta.ethernet_ipv4 = 1;
         transition accept;
     }
 
     state parse_generic_addresses {
-        pkt.extract(hdr.arp_addresses, address_bytes * 8);
+        pkt.extract(addresses, address_bytes * 8);
         transition accept;
     }
 }
