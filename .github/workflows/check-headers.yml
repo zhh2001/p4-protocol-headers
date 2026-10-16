@@ -1,0 +1,27 @@
+name: Header checks
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  check-headers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: p4lang/p4c:1.2.5.18@sha256:d01beb3e5fd72c41705e599ad1483ff1bf45a19bcf10980534efb9694d90834f
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Show tool versions
+        run: |
+          python3 --version
+          p4test --version
+          p4c-bm2-ss --version
+
+      - name: Check references and compile headers
+        run: python3 scripts/check_headers.py
